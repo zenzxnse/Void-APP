@@ -10,7 +10,5 @@ export default {
         if (!config.AI_ALLOWED_LIST.includes(message.author.id)) {
             return;
         }
-
-
     }
 }

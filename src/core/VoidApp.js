@@ -2,9 +2,9 @@
 // Minimal main bot class — uses existing handlers, no auto-registration, no extra loaders.
 
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { logger } from './core/logger.js';
-import loadCommands from './commandHandler.js';
-import loadEvents from './eventHandler.js';
+import { logger } from './logger.js';
+import loadCommands from './loaders/commandLoader.js';
+import loadEvents from './loaders/eventLoader.js';
 
 export default class VoidApp extends Client {
   #token;
@@ -38,26 +38,6 @@ export default class VoidApp extends Client {
       errors: 0,
     };
 
-    this.once('ready', () => {
-      logger.info({ tag: this.user?.tag ?? 'unknown' }, 'Bot online');
-    });
-
-    // Basic client diagnostics
-    this.on('error', (err) => logger.error({ err }, '[CLIENT ERROR]'));
-    this.on('warn', (msg) => logger.warn({ msg }, '[CLIENT WARN]'));
-
-    // Process-level traps
-    if (process.listenerCount('unhandledRejection') === 0) {
-      process.on('unhandledRejection', (reason, p) =>
-        logger.error({ reason, promise: p }, 'Unhandled Rejection')
-      );
-    }
-    if (process.listenerCount('uncaughtException') === 0) {
-      process.on('uncaughtException', (err) =>
-        logger.error({ err }, 'Uncaught Exception')
-      );
-    }
-
     // Graceful shutdown
     const shutdown = async (sig) => {
       logger.info({ sig }, 'Shutting down');
@@ -70,17 +50,11 @@ export default class VoidApp extends Client {
   async start() {
     logger.info('Starting Void Bot…');
     try {
-      // Load handlers you actually have
       await Promise.all([
         loadCommands(this),
         loadEvents(this),
       ]);
-
-      // Update loaded stats if your loaders fill these
       this.stats.loaded.commands = this.commands?.size ?? 0;
-      // If your event loader keeps a collection, set it here; else skip.
-      // this.stats.loaded.events = this.eventHandlers?.size ?? 0;
-
       await this.login(this.#token);
     } catch (err) {
       logger.error({ err }, 'Failed to start/login');

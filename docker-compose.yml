@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    container_name: void_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: void
+      POSTGRES_PASSWORD: voidpassword
+      POSTGRES_DB: voiddb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # mount a folder of SQLs so you can drop the NEW schema here
+      - ./schema:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  bot:
+    build: .
+    profiles: ["bot"]        # <-- won't start unless you include this profile
+    restart: unless-stopped
+    environment:
+      VOID_TOKEN: ${VOID_TOKEN}
+      APP_ID: ${APP_ID}
+      OWNER_IDS: ${OWNER_IDS}
+      GROQ_KEY: ${GROQ_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      DATABASE_URL: postgres://void:voidpassword@db:5432/voiddb
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
