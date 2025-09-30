@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Void Bot Banner](src/graphics/bg.jpg)
+![Banner](src/graphics/bg.jpg)
 
-<img src="src/graphics/Void.jpg" alt="Void Bot" width="200"/>
+<img src="src/graphics/void.jpg" alt="Void Bot Avatar" width="150" style="border-radius: 50%; margin-top: -75px; border: 5px solid #1a1a1a;"/>
 
 **Version:** 1.0.0-beta  
 **License:** Apache-2.0  
@@ -21,7 +21,6 @@
 [Features](#features) • [Installation](#installation) • [Configuration](#configuration) • [Commands](COMMANDS.md) • [Contributing](#contributing)
 
 </div>
-
 ---
 
 ## Overview
