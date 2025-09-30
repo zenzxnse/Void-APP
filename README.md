@@ -4,7 +4,7 @@
 
 ![Void Bot Banner](src/graphics/bg.jpg)
 
-<img src="src/graphics/void.jpg" alt="Void Bot" width="200"/>
+<img src="src/graphics/Void.jpg" alt="Void Bot" width="200"/>
 
 **Version:** 1.0.0-beta  
 **License:** Apache-2.0  
