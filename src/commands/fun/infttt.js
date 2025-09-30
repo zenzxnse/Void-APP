@@ -8,62 +8,66 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-} from 'discord.js';
-import { ensureInGuild, safeReply } from '../../utils/moderation/mod.js';
-import { createLogger } from '../../core/logger.js';
-import { query } from '../../core/db/index.js';
-import { SecureCustomId } from '../../components/ComponentRouter.js';
+} from "discord.js";
+import { ensureInGuild, safeReply } from "../../utils/moderation/mod.js";
+import { createLogger } from "../../core/logger.js";
+import { query } from "../../core/db/index.js";
+import { SecureCustomId } from "../../components/ComponentRouter.js";
 
-const log = createLogger({ mod: 'infttt' });
-const COMPONENT_TYPE = 'ttt:board';
-const COMPONENT_KEY = 'ttt'; // one row per message
+const log = createLogger({ mod: "infttt" });
+const COMPONENT_TYPE = "ttt:board";
+const COMPONENT_KEY = "ttt"; // one row per message
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('infttt')
-    .setDescription('Play Infinite Tic-Tac-Toe (moves roll off after 6 placements).')
-    .addStringOption(o =>
-      o.setName('mode')
-        .setDescription('Game mode')
-        .addChoices(
-          { name: 'vs Computer', value: 'comp' },
-          { name: 'PvP (two players)', value: 'pvp' },
-        )
-        .setRequired(true),
+    .setName("infttt")
+    .setDescription(
+      "Play Infinite Tic-Tac-Toe (moves roll off after 6 placements)."
     )
-    .addUserOption(o =>
-      o.setName('opponent')
-        .setDescription('Opponent user (required for PvP)'),
+    .addStringOption((o) =>
+      o
+        .setName("mode")
+        .setDescription("Game mode")
+        .addChoices(
+          { name: "vs Computer", value: "comp" },
+          { name: "PvP (two players)", value: "pvp" }
+        )
+        .setRequired(true)
+    )
+    .addUserOption((o) =>
+      o.setName("opponent").setDescription("Opponent user (required for PvP)")
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
     .setDMPermission(true),
 
   async execute(interaction) {
     // DM and Guild both supported
-    const mode = interaction.options.getString('mode', true);
-    const opponentUser = interaction.options.getUser('opponent');
-    if (mode === 'pvp' && !opponentUser) {
-      return safeReply(interaction, { content: 'Please provide an opponent for PvP mode.' });
+    const mode = interaction.options.getString("mode", true);
+    const opponentUser = interaction.options.getUser("opponent");
+    if (mode === "pvp" && !opponentUser) {
+      return safeReply(interaction, {
+        content: "Please provide an opponent for PvP mode.",
+      });
     }
 
     // Initial state
-    const isComp = mode === 'comp';
+    const isComp = mode === "comp";
     const you = interaction.user.id;
-    const opp = isComp ? 'bot' : opponentUser.id;
+    const opp = isComp ? "bot" : opponentUser.id;
 
     // Random marks
     const marks = Math.random() < 0.5 ? { X: you, O: opp } : { X: opp, O: you };
     const board = [
-      [' ', ' ', ' '],
-      [' ', ' ', ' '],
-      [' ', ' ', ' '],
+      [" ", " ", " "],
+      [" ", " ", " "],
+      [" ", " ", " "],
     ];
 
     const state = {
       mode,
       createdBy: you,
       players: { X: marks.X, O: marks.O }, // 'bot' if comp & assigned
-      turn: 'X',
+      turn: "X",
       board,
       moves: [], // [{i,j,mark}]
       createdAt: Date.now(),
@@ -73,7 +77,7 @@ export default {
     };
 
     const open = `Let's play Infinite Tic-Tac-Toe!
-You are <@${you}>. ${isComp ? 'I am your opponent.' : `Opponent: <@${opp}>.`}
+You are <@${you}>. ${isComp ? "I am your opponent." : `Opponent: <@${opp}>.`}
 **${renderAssigned(state)}** begins.`;
 
     // Build initial components (IDs will be refreshed by handler each move)
@@ -102,14 +106,14 @@ You are <@${you}>. ${isComp ? 'I am your opponent.' : `Opponent: <@${opp}>.`}
           JSON.stringify(state),
           // 2 hours from now; handlers bump this on interaction
           new Date(Date.now() + 2 * 60 * 60 * 1000),
-        ],
+        ]
       );
     } catch (err) {
-      log.error({ err }, 'Failed to persist new TicTacToe game');
+      log.error({ err }, "Failed to persist new TicTacToe game");
     }
 
     // If bot is X and it’s comp mode, immediately make the first move
-    if (isComp && state.players.X === 'bot') {
+    if (isComp && state.players.X === "bot") {
       // emulate a move by calling same logic used in the handler:
       await botMoveAndUpdate(interaction.client, msg, state);
     }
@@ -119,9 +123,9 @@ You are <@${you}>. ${isComp ? 'I am your opponent.' : `Opponent: <@${opp}>.`}
 // ===== Helpers (shared between command and components) =====
 
 export function renderAssigned(state) {
-  const who = mark =>
-    state.players[mark] === 'bot' ? 'Bot' : `<@${state.players[mark]}>`;
-  return `**X:** ${who('X')} | **O:** ${who('O')}`;
+  const who = (mark) =>
+    state.players[mark] === "bot" ? "Bot" : `<@${state.players[mark]}>`;
+  return `**X:** ${who("X")} | **O:** ${who("O")}`;
 }
 
 export function buildBoardComponents(interaction, state) {
@@ -133,33 +137,35 @@ export function buildBoardComponents(interaction, state) {
     const row = new ActionRowBuilder();
     for (let j = 0; j < 3; j++) {
       const cell = state.board[i][j];
-      const disabled = cell !== ' ';
+      const disabled = cell !== " ";
       const style =
-        cell === 'X' ? ButtonStyle.Danger :
-        cell === 'O' ? ButtonStyle.Success :
-        ButtonStyle.Secondary;
+        cell === "X"
+          ? ButtonStyle.Danger
+          : cell === "O"
+          ? ButtonStyle.Success
+          : ButtonStyle.Secondary;
 
-      const cid = makeTttId(interaction, 'move', { i, j });
+      const cid = makeTttId(interaction, "move", { i, j });
 
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(cid)
-          .setLabel(cell === ' ' ? '\u200b' : cell)
+          .setLabel(cell === " " ? "\u200b" : cell)
           .setStyle(style)
-          .setDisabled(disabled),
+          .setDisabled(disabled)
       );
     }
     rows.push(row);
   }
 
   // Resign row
-  const resignId = makeTttId(interaction, 'resign', {});
+  const resignId = makeTttId(interaction, "resign", {});
   const resignRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(resignId.replace(/:eyJ1Ijoi[^:]+:/, ':{}/:'))
-      .setEmoji('🚩')
+      .setCustomId(resignId.replace(/:eyJ1Ijoi[^:]+:/, ":{}/:"))
+      .setEmoji("🚩")
       .setCustomId(resignId)
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(ButtonStyle.Primary)
   );
 
   // Highlight the “next to expire” (oldest) move when we’re exactly on trail size
@@ -177,9 +183,9 @@ export function buildBoardComponents(interaction, state) {
 // keep only expiry (e), nonce (n) and coordinates in d = {i,j}
 // drop u/g/c/m to stay far under 100 chars and allow both players to click.
 function makeTttId(interaction, action, coords, ttlSec = 3600) {
-  const id = new SecureCustomId('ttt', action, 'v1')
-    .setContext(interaction)            // creates u,g,c,m,e,n
-    .setData(coords)                    // put {i,j} (or {} for resign)
+  const id = new SecureCustomId("ttt", action, "v1")
+    .setContext(interaction) // creates u,g,c,m,e,n
+    .setData(coords) // put {i,j} (or {} for resign)
     .setTTL(ttlSec);
   // strip everything we don't need to keep IDs tiny and multi-user
   delete id.data.u; // allow both participants
@@ -191,16 +197,24 @@ function makeTttId(interaction, action, coords, ttlSec = 3600) {
 
 // Save + fetch
 export async function loadGame(messageId) {
-  const { rows: [row] } = await query(
+  const {
+    rows: [row],
+  } = await query(
     `SELECT component_data FROM persistent_components
      WHERE message_id = $1 AND component_key = $2`,
-    [messageId, COMPONENT_KEY],
+    [messageId, COMPONENT_KEY]
   );
   if (!row) return null;
   return row.component_data;
 }
 
-export async function saveGame(messageId, guildId, channelId, state, ttlMs = 2 * 60 * 60 * 1000) {
+export async function saveGame(
+  messageId,
+  guildId,
+  channelId,
+  state,
+  ttlMs = 2 * 60 * 60 * 1000
+) {
   await query(
     `INSERT INTO persistent_components (
        message_id, channel_id, guild_id,
@@ -218,21 +232,21 @@ export async function saveGame(messageId, guildId, channelId, state, ttlMs = 2 *
       COMPONENT_KEY,
       JSON.stringify(state),
       new Date(Date.now() + ttlMs),
-    ],
+    ]
   );
 }
 
 export function isPlayerAuthorized(state, userId) {
-  if (state.mode === 'comp') {
+  if (state.mode === "comp") {
     // Only the human is allowed
-    const human = state.players.X === 'bot' ? state.players.O : state.players.X;
+    const human = state.players.X === "bot" ? state.players.O : state.players.X;
     return userId === human;
   }
   return userId === state.players.X || userId === state.players.O;
 }
 
 export function markOf(userId, state) {
-  if (state.players.X === userId) return 'X';
-  if (state.players.O === userId) return 'O';
+  if (state.players.X === userId) return "X";
+  if (state.players.O === userId) return "O";
   return null;
 }

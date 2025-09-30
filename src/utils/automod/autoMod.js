@@ -1,19 +1,20 @@
-// src/events/messageAutoMod.js
+// src/utils/automod/automod.js
 import {
   Events,
   EmbedBuilder,
   PermissionFlagsBits,
   ChannelType,
-  Collection, // <-- for proper bulkDelete
+  Collection,
 } from 'discord.js';
-import { query, tx } from '../core/db/index.js';
-import { createInfractionWithCount, getGuildConfig } from '../utils/moderation/mod-db.js';
-import { applyModAction } from '../utils/moderation/mod-actions.js';
-import { createLogger } from '../core/logger.js';
-import { getAutoModState } from '../utils/automod/redis-state.js';
 import pLimit from 'p-limit';
 
-const log = createLogger({ mod: 'automod:processor' });
+import { query, tx } from '../../core/db/index.js';
+import { createLogger } from '../../core/logger.js';
+import { createInfractionWithCount, getGuildConfig } from '../moderation/mod-db.js';
+import { applyModAction } from '../moderation/mod-actions.js';
+import { createAutoModState, getAutoModState } from './redis-state.js';
+
+const log = createLogger({ mod: 'automod:handle' });
 
 // ------------------------------
 // Tunables
@@ -23,93 +24,94 @@ const MAX_REGEX_LENGTH = 200;
 const REGEX_TIMEOUT_MS = 100;
 const ACTION_LOCK_TTL = 15;            // seconds, per (guild,user,action)
 const VIOLATION_COOLDOWN_S = 10;       // seconds, per (guild,user,ruleType) across shards
-const FETCH_PAGE_DELAY_MS = 120;       // delay between fetch pages to respect rate limits
-const FETCH_PAGES_MAX = 5;             // up to 5 x 100 messages per violation when cleaning
+const FETCH_PAGE_DELAY_MS = 120;       // delay between fetch pages
+const FETCH_PAGES_MAX = 5;             // up to 5 x 100 messages per violation
 const BULK_DELETE_CAP = 80;            // max targeted deletions per burst (<=100)
 const VALID_ACTIONS = new Set(['delete', 'warn', 'timeout', 'mute', 'kick', 'ban']);
 
 // ------------------------------
-// Event
+// Public Facade
 // ------------------------------
-export default {
-  name: Events.MessageCreate,
-  once: false,
+export const Automod = {
+  /**
+   * Call ONCE at startup.
+   * @param {{ redisClient: any }} opts
+   */
+  start(opts) {
+    if (!opts?.redisClient) throw new Error('Automod.start requires { redisClient }');
+    createAutoModState(opts.redisClient); // singleton init + background cleanup
+    log.info('AutoMod initialized');
+  },
 
-  async execute(message, client) {
-    // Fast skips
-    if (message.author.bot || message.system || !message.inGuild()) return;
-    if (!message.content?.trim() && message.attachments.size === 0) return;
+  /**
+   * @param {import('discord.js').Message} message
+   * @param {import('discord.js').Client} client
+   * @returns {Promise<{acted:boolean, results?:any[]}|undefined>}
+   */
+  async handle(message, client) {
+    try {
+      if (message.author.bot || message.system || !message.inGuild()) return { acted: false, reason: 'skip' };
+      if (!message.content?.trim() && message.attachments.size === 0) return { acted: false, reason: 'empty' };
 
-    // Ensure member
-    if (!message.member) {
-      try { message.member = await message.guild.members.fetch(message.author.id); }
-      catch { return; }
-    }
-
-    // Get state + config
-    const state = getAutoModState();
-    if (!state) return;
-
-    const config = await dbLimit(() => getGuildAutoModConfig(message.guildId, state));
-    if (!config?.enabled || !config.rules?.length) return;
-
-    // Exemptions (admins/managers or rule overrides)
-    if (await isExempt(message, config.rules)) return;
-
-    // Track signals used by rate rules
-    const tracking = await Promise.allSettled([
-      state.trackMessage(message.author.id, message.guildId),
-      (message.mentions.users.size + message.mentions.roles.size) > 0
-        ? state.trackMentions(
-            message.author.id, message.guildId,
-            message.mentions.users.size + message.mentions.roles.size
-          )
-        : Promise.resolve(),
-      state.trackChannelUsage(message.author.id, message.guildId, message.channelId)
-    ]);
-
-    if (tracking.filter(r => r.status === 'rejected').length > tracking.length / 2) {
-      log.warn({ guildId: message.guildId }, 'Skipping automod due to tracking failures');
-      return;
-    }
-
-    // Evaluate rules (priority order from config)
-    for (const rule of config.rules) {
-      if (!rule.enabled || rule.quarantined) continue;
-
-      let violation = null;
-      try {
-        violation = await checkRule(message, rule, state);
-      } catch (err) {
-        log.error({ err, ruleId: rule.id, type: rule.type }, 'Rule checker error');
-        continue;
+      if (!message.member) {
+        try { message.member = await message.guild.members.fetch(message.author.id); }
+        catch { return { acted: false, reason: 'no_member' }; }
       }
-      if (!violation) continue;
 
-      // Cross-shard violation cooldown: only one shard runs stateful actions for a few seconds
-      const violKey = `viol:${rule.type}:${rule.id}`;
-      const isFirst = await state.acquireActionLock(
-        message.guildId, message.author.id, violKey, VIOLATION_COOLDOWN_S
-      );
-      if (!isFirst) {
-        // But still try to delete the *single* message if delete is part of the rule (cheap mitigation)
-        const hasDelete = getRuleActions(rule).some(a => normalizeAction(a) === 'delete');
-        if (hasDelete && message.deletable) message.delete().catch(() => {});
-        continue;
+      const state = getAutoModState();
+      const config = await dbLimit(() => getGuildAutoModConfig(message.guildId, state));
+      if (!config?.enabled || !config.rules?.length) return { acted: false, reason: 'disabled' };
+
+      if (await isExempt(message, config.rules)) return { acted: false, reason: 'exempt' };
+
+      const tracking = await Promise.allSettled([
+        state.trackMessage(message.author.id, message.guildId),
+        (message.mentions.users.size + message.mentions.roles.size) > 0
+          ? state.trackMentions(message.author.id, message.guildId, message.mentions.users.size + message.mentions.roles.size)
+          : Promise.resolve(),
+        state.trackChannelUsage(message.author.id, message.guildId, message.channelId)
+      ]);
+      if (tracking.filter(r => r.status === 'rejected').length > tracking.length / 2) {
+        log.warn({ guildId: message.guildId }, 'Skipping automod due to tracking failures');
+        return { acted: false, reason: 'tracking_fail' };
       }
-      // (Don't release violKey; TTL is the cooldown)
 
-      try {
-        const results = await handleViolation(message, rule, violation, state, client);
-        if (results.some(r => r.success)) {
-          await postViolationEmbed(message, rule, violation, results);
+      for (const rule of config.rules) {
+        if (!rule.enabled || rule.quarantined) continue;
+
+        let violation = null;
+        try {
+          violation = await checkRule(message, rule, state);
+        } catch (err) {
+          log.error({ err, ruleId: rule.id, type: rule.type }, 'Rule checker error');
+          continue;
         }
-      } catch (err) {
-        log.error({ err, ruleId: rule.id }, 'Violation handling failed');
+        if (!violation) continue;
+
+        const violKey = `viol:${rule.type}:${rule.id}`;
+        const isFirst = await state.acquireActionLock(message.guildId, message.author.id, violKey, VIOLATION_COOLDOWN_S);
+        if (!isFirst) {
+          const hasDelete = getRuleActions(rule).some(a => normalizeAction(a) === 'delete');
+          if (hasDelete && message.deletable) message.delete().catch(() => {});
+          return { acted: true, results: [{ action: 'delete?cooldown', success: hasDelete }] };
+        }
+
+        try {
+          const results = await handleViolation(message, rule, violation, state, client);
+          if (results.some(r => r.success)) {
+            await postViolationEmbed(message, rule, violation, results);
+          }
+          return { acted: results.some(r => r.success), results };
+        } catch (err) {
+          log.error({ err, ruleId: rule.id }, 'Violation handling failed');
+          return { acted: false, reason: 'handler_error' };
+        }
       }
 
-      // Stop after first matching rule
-      break;
+      return { acted: false, reason: 'no_match' };
+    } catch (err) {
+      log.error({ err }, 'Automod.handle error');
+      return { acted: false, reason: 'error' };
     }
   }
 };
@@ -146,14 +148,13 @@ async function handleViolation(message, rule, violation, state, client) {
     }
 
     if (action === 'delete') {
-      // Delete ALL of the violator’s messages in the window (incl. those BEFORE the threshold trip)
       const deleted = await deleteBurstFromUser(message, rule, violation);
       deletedCountForDm += deleted;
       results.push({ action: 'delete', success: deleted > 0, deleted });
       continue;
     }
 
-    // lock for stateful actions (warn/timeout/kick/ban)
+    // lock for stateful actions
     const haveLock = await state.acquireActionLock(
       message.guildId, message.author.id, action, ACTION_LOCK_TTL
     );
@@ -226,7 +227,7 @@ async function handleViolation(message, rule, violation, state, client) {
     }
   }
 
-  // DM violator once if we actually did something (delete and/or warn/timeout/etc.)
+  // DM violator if something succeeded and DM is enabled
   const shouldDm = results.some(r => r.success) && (await getDmFlag(message.guildId));
   if (shouldDm) {
     try {
@@ -243,7 +244,7 @@ async function handleViolation(message, rule, violation, state, client) {
             `Action taken in **${message.guild.name}**`,
             `**Rule:** ${rule.name}`,
             `**Actions:** ${actionList}`,
-            warned ? null : undefined
+            // optional: include warn count if your createInfractionWithCount returns it
           ].filter(Boolean).join('\n')
         )
         .setFooter({ text: `Reason: ${reasonFromViolation(violation)}` })
@@ -252,14 +253,13 @@ async function handleViolation(message, rule, violation, state, client) {
       if (violation.type === 'spam' && violation.details?.messageCount) {
         emb.addFields({ name: 'Details', value: `${violation.details.messageCount} messages in ${violation.details.timeWindow}s`, inline: false });
       }
-      if (deletedCountForDm > 0) {
-        emb.addFields({ name: 'Messages Removed', value: String(deletedCountForDm), inline: true });
+      const deletedSum = results.find(r => r.action === 'delete')?.deleted || 0;
+      if (deletedSum > 0) {
+        emb.addFields({ name: 'Messages Removed', value: String(deletedSum), inline: true });
       }
 
-      await message.author.send({ embeds: [emb] });
-    } catch {
-      /* ignore DM failures */
-    }
+      await message.author.send({ embeds: [emb] }).catch(() => {});
+    } catch {}
   }
 
   return results;
@@ -270,7 +270,7 @@ async function getDmFlag(guildId) {
     const { dm_on_action } = await getGuildConfig(guildId, 'dm_on_action');
     return !!dm_on_action;
   } catch {
-    return true; // default to on
+    return true;
   }
 }
 
@@ -317,13 +317,12 @@ async function recordAction(message, rule, violation, action, success, errorMsg 
 }
 
 // ------------------------------
-// Spam cleaning (delete all within window, not just “after threshold”)
+// Cleaning logic
 // ------------------------------
 async function deleteBurstFromUser(message, rule, violation) {
   const chan = message.channel;
   if (!chan || chan.type !== ChannelType.GuildText) return 0;
 
-  // Window seconds: prefer rule_data.window_seconds, then duration_seconds, else 5
   const winS = ((rule.rule_data?.window_seconds || rule.duration_seconds) || 5);
   const cutoff = Date.now() - winS * 1000;
 
@@ -336,7 +335,7 @@ async function deleteBurstFromUser(message, rule, violation) {
 
     for (const msg of batch.values()) {
       if (msg.author.id !== message.author.id) continue;
-      if (msg.createdTimestamp < cutoff) break; // batches are newest->oldest
+      if (msg.createdTimestamp < cutoff) break;
       if (!msg.pinned && msg.deletable) toDelete.push(msg);
       if (toDelete.length >= BULK_DELETE_CAP) break;
     }
@@ -346,26 +345,21 @@ async function deleteBurstFromUser(message, rule, violation) {
     await new Promise(r => setTimeout(r, FETCH_PAGE_DELAY_MS));
   }
 
-  // Ensure the triggering message is included if still present
   if (message.deletable && !toDelete.some(m => m.id === message.id)) {
     toDelete.unshift(message);
   }
 
   if (toDelete.length === 0) return 0;
 
-  // Build a Discord.js Collection (Map won't work here)
   const coll = new Collection();
   for (const m of toDelete) coll.set(m.id, m);
 
-  // Try bulk delete first
   const res = await chan.bulkDelete(coll, true).catch(() => null);
   if (res?.size) return res.size;
 
-  // Fallback: delete individually (slow path, but reliable)
   let count = 0;
   for (const m of toDelete) {
-    try { await m.delete(); count++; }
-    catch { /* ignore */ }
+    try { await m.delete(); count++; } catch {}
     await new Promise(r => setTimeout(r, 100));
   }
   return count;
@@ -460,7 +454,7 @@ async function getGuildAutoModConfig(guildId, state) {
       expires: Date.now() + 5 * 60 * 1000
     };
 
-    await state.setGuildConfig(guildId, config);
+    await state.setGuildConfig(guildId, config); // cache in redis for shards
     return config;
   } catch (err) {
     log.error({ err, guildId }, 'Failed to load automod config');
@@ -588,9 +582,6 @@ async function checkRegexRule(message, rule) {
   } catch { return null; }
 }
 
-// ------------------------------
-// Misc
-// ------------------------------
 function reasonFromViolation(v) {
   switch (v.type) {
     case 'spam': return 'Message spam';

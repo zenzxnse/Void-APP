@@ -1,16 +1,16 @@
 // src/VoidApp.js
 // Minimal main bot class — uses existing handlers, no auto-registration, no extra loaders.
 
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { logger } from './logger.js';
-import loadCommands from './loaders/commandLoader.js';
-import loadEvents from './loaders/eventLoader.js';
+import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { logger } from "./logger.js";
+import loadCommands from "./loaders/commandLoader.js";
+import loadEvents from "./loaders/eventLoader.js";
 
 export default class VoidApp extends Client {
   #token;
 
   constructor(token) {
-    if (!token) throw new Error('VOID_TOKEN is missing or empty');
+    if (!token) throw new Error("VOID_TOKEN is missing or empty");
 
     super({
       intents: [
@@ -25,7 +25,7 @@ export default class VoidApp extends Client {
         Partials.Channel,
         // Partials.Reaction,
       ],
-      allowedMentions: { parse: ['users', 'roles'], repliedUser: false },
+      allowedMentions: { parse: ["users", "roles"], repliedUser: false },
     });
 
     this.#token = token;
@@ -40,24 +40,27 @@ export default class VoidApp extends Client {
 
     // Graceful shutdown
     const shutdown = async (sig) => {
-      logger.info({ sig }, 'Shutting down');
-      try { await this.destroy(); } finally { process.exit(0); }
+      logger.info({ sig }, "Shutting down");
+      try {
+        await this.destroy();
+      } finally {
+        process.exit(0);
+      }
     };
-    if (process.listenerCount('SIGINT') === 0) process.once('SIGINT', () => shutdown('SIGINT'));
-    if (process.listenerCount('SIGTERM') === 0) process.once('SIGTERM', () => shutdown('SIGTERM'));
+    if (process.listenerCount("SIGINT") === 0)
+      process.once("SIGINT", () => shutdown("SIGINT"));
+    if (process.listenerCount("SIGTERM") === 0)
+      process.once("SIGTERM", () => shutdown("SIGTERM"));
   }
 
   async start() {
-    logger.info('Starting Void Bot…');
+    logger.info("Starting Void Bot…");
     try {
-      await Promise.all([
-        loadCommands(this),
-        loadEvents(this),
-      ]);
+      await Promise.all([loadCommands(this), loadEvents(this)]);
       this.stats.loaded.commands = this.commands?.size ?? 0;
       await this.login(this.#token);
     } catch (err) {
-      logger.error({ err }, 'Failed to start/login');
+      logger.error({ err }, "Failed to start/login");
       process.exitCode = 1;
     }
   }

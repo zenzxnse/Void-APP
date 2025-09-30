@@ -1,21 +1,24 @@
 // src/core/env-config.js
-import 'dotenv/config';
-import { z } from 'zod';
+import "dotenv/config";
+import { z } from "zod";
 
 const Int = (def) => z.coerce.number().int().nonnegative().default(def);
-const Bool = (def) => z
-  .string()
-  .transform(v => /^(1|true|yes)$/i.test(v))
-  .optional()
-  .transform(v => (v === undefined ? def : v));
+const Bool = (def) =>
+  z
+    .string()
+    .transform((v) => /^(1|true|yes)$/i.test(v))
+    .optional()
+    .transform((v) => (v === undefined ? def : v));
 
 const schema = z.object({
-  VOID_TOKEN: z.string().min(1, 'VOID_TOKEN is required'),
-  NODE_ENV: z.enum(['production','development']).default(process.env.NODE_ENV ?? 'development'),
+  VOID_TOKEN: z.string().min(1, "VOID_TOKEN is required"),
+  NODE_ENV: z
+    .enum(["production", "development"])
+    .default(process.env.NODE_ENV ?? "development"),
 
   // Sharding
-  SHARDING: z.string().optional(),               // '0' or '1' (string env)
-  TOTAL_SHARDS: z.string().optional(),           // 'auto' or int
+  SHARDING: z.string().optional(), // '0' or '1' (string env)
+  TOTAL_SHARDS: z.string().optional(), // 'auto' or int
   SHARD_SPAWN_DELAY: Int(7500),
   SHARD_SPAWN_TIMEOUT: Int(30000),
   SHARD_RESPAWN_DELAY: Int(5000),
@@ -31,8 +34,8 @@ const schema = z.object({
   JOB_BATCH_SIZE: Int(10),
 
   // Redis
-  REDIS_URL: z.string().default('redis://127.0.0.1:6379/0'),
-  REDIS_KEY_PREFIX: z.string().default('void:'),
+  REDIS_URL: z.string().default("redis://127.0.0.1:6379/0"),
+  REDIS_KEY_PREFIX: z.string().default("void:"),
   REDIS_LIMP_MODE: Bool(true), // allow limp fallback if redis down
 
   // Logging (env wins over app config; your logger already reads these)
@@ -46,9 +49,9 @@ const schema = z.object({
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
   // Pretty-print the first handful of issues then bail
-  console.error('❌ Invalid environment configuration:');
+  console.error("❌ Invalid environment configuration:");
   for (const issue of parsed.error.issues.slice(0, 10)) {
-    console.error(` - ${issue.path.join('.')}: ${issue.message}`);
+    console.error(` - ${issue.path.join(".")}: ${issue.message}`);
   }
   process.exit(1);
 }
@@ -56,15 +59,16 @@ if (!parsed.success) {
 const env = parsed.data;
 
 // derive shouldShard default: shard in prod unless SHARDING='0'
-const shouldShard = env.SHARDING != null
-  ? env.SHARDING !== '0'
-  : env.NODE_ENV === 'production';
+const shouldShard =
+  env.SHARDING != null ? env.SHARDING !== "0" : env.NODE_ENV === "production";
 
 // derive totalShards normalized
 const totalShards =
-  (env.TOTAL_SHARDS?.toLowerCase?.() === 'auto')
-    ? 'auto'
-    : (Number.isFinite(parseInt(env.TOTAL_SHARDS)) ? parseInt(env.TOTAL_SHARDS) : 'auto');
+  env.TOTAL_SHARDS?.toLowerCase?.() === "auto"
+    ? "auto"
+    : Number.isFinite(parseInt(env.TOTAL_SHARDS))
+    ? parseInt(env.TOTAL_SHARDS)
+    : "auto";
 
 export default {
   ...env,

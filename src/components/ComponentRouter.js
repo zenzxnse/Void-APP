@@ -36,6 +36,7 @@ const CONFIG = {
 
 // ============================================================================
 // ANTI-REPLAY MECHANISM
+// *brief: In-memory store to prevent replay of used IDs
 // ============================================================================
 
 class AntiReplayGuard {
@@ -365,6 +366,7 @@ class ComponentRegistry {
       
       // Component-specific
       defer: handler.defer ?? 'auto',
+      replayScope: handler.replayScope ?? 'id', // 'id' | 'user' | 'channel' | 'none'
       ephemeral: handler.ephemeral ?? true,
       callerOnly: handler.callerOnly ?? false,
       allowedUsers: handler.allowedUsers ? new Set(handler.allowedUsers) : null,
@@ -586,14 +588,6 @@ export class ComponentRouter {
         return;
       }
       
-      // Anti-replay check
-      const replayKey = `${parsed.versionedPrefix}:${parsed.data.guildId}:${parsed.data.messageId}:${parsed.data.nonce}`;
-      if (!antiReplay.check(replayKey)) {
-        this.incrementDenial('replay');
-        await this.replyError(interaction, 'This action was already used.');
-        return;
-      }
-      
       // Find handler
       const registry = this.registries.get(type);
       handler = registry.findHandler(parsed);
@@ -607,6 +601,25 @@ export class ComponentRouter {
       // Defer immediately unless explicitly disabled
       if (handler.defer !== 'none' && handler.defer !== false) {
         await ComponentMiddleware.defer(interaction, handler);
+      }
+
+      // Anti-replay with scope (before middleware/handler)
+      const scope = handler.replayScope ?? "id";
+      if (scope !== "none") {
+        const base = `${parsed.versionedPrefix}:${parsed.data.guildId ?? ""}:${
+          parsed.data.messageId ?? ""
+        }:${parsed.data.nonce}`;
+        const replayKey =
+          scope === "user"
+            ? `${base}:u:${interaction.user.id}`
+            : scope === "channel"
+            ? `${base}:ch:${interaction.channelId}`
+            : base; // 'id'
+        if (!antiReplay.check(replayKey)) {
+          this.incrementDenial("replay");
+          await this.replyError(interaction, "This action was already used.");
+          return;
+        }
       }
       
       // Run standard middleware
@@ -733,8 +746,6 @@ async storePersistentComponent(interaction, parsed, handler) {
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ content: message, ephemeral: true });
-      } else if (interaction.deferred && !interaction.replied) {
-        await interaction.editReply({ content: message });
       } else {
         await interaction.followUp({ content: message, ephemeral: true });
       }

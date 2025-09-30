@@ -21,6 +21,7 @@ export function registerTicTacToeComponents(router) {
   router.button('ttt:move', {
     name: 'ttt_move',
     defer: 'update',
+    replayScope: 'user',
     persistent: false, // we handle persistence manually
     cooldownMs: 400,   // debounce spam a bit
     dmPermission: true,
@@ -94,6 +95,7 @@ export function registerTicTacToeComponents(router) {
     name: 'ttt_resign',
     defer: 'update',
     persistent: false,
+    replayScope: 'user',
     dmPermission: true,
     guildOnly: false,
 
