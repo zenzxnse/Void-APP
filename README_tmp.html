@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>README.md</title>
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+    
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+html,footer,header{
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Custom MD PDF CSS
+ */
+html,footer,header{
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+
+ }
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///r%3A/2.Travail/1.Enseignement/Cours/_1.Outils/2.Developpement/1.SCSS/main.css" type="text/css"><link rel="stylesheet" href="file:///d%3A/rdaros/Cours/_1.Outils/2.Developpement/1.SCSS/main.css" type="text/css">
+</head>
+
+<body>
+    <h1 id="void-bot">Void Bot</h1>
+<div align="center">
+</div><p><img src="file:///c:/Mods/Java Notes/mc/New folder/Void/src/graphics/bg.jpg" alt="Banner"></p>
+<img src="file:///c:/Mods/Java Notes/mc/New folder/Void/src/graphics/Void.jpg" alt="Void Bot Avatar" width="150" style="border-radius: 50%; margin-top: -75px; border: 5px solid #1a1a1a;">
+<p><strong>Version:</strong> 1.0.0-beta<br>
+<strong>License:</strong> Apache-2.0<br>
+<strong>Author:</strong> Zenzxnse</p>
+<p><em>Enterprise-grade Discord moderation bot with automatic sharding and comprehensive moderation tools</em></p>
+<p><a href="https://discord.js.org/"><img src="https://img.shields.io/badge/discord.js-v14-blue.svg" alt="Discord.js"></a><br>
+<a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg" alt="Node.js"></a><br>
+<a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-16-336791.svg" alt="PostgreSQL"></a><br>
+<a href="https://redis.io/"><img src="https://img.shields.io/badge/Redis-7-DC382D.svg" alt="Redis"></a><br>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a></p>
+<p><a href="#features">Features</a> • <a href="#installation">Installation</a> • <a href="#configuration">Configuration</a> • <a href="COMMANDS.md">Commands</a> • <a href="#contributing">Contributing</a></p>
+<h2 id="div"></div></h2>
+<h2 id="overview">Overview</h2>
+<p>Void Bot is a feature-rich Discord moderation bot built with Discord.js v14, featuring automatic sharding, persistent components, comprehensive moderation tools, and enterprise-grade architecture. Designed for servers of all sizes, it provides transaction-based operations, job scheduling, and distributed state management.</p>
+<p><strong>Current Status:</strong> Beta (v1.0.0-beta)</p>
+<blockquote>
+<p><strong>Note:</strong> AI moderation and utilities will be added in future releases.</p>
+</blockquote>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#features">Features</a></li>
+<li><a href="#quality-of-life-commands">Quality of Life Commands</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#environment-variables">Environment Variables</a></li>
+<li><a href="#docker-setup">Docker Setup</a></li>
+<li><a href="#development">Development</a></li>
+<li><a href="#health--monitoring">Health &amp; Monitoring</a></li>
+<li><a href="#project-structure">Project Structure</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#production-deployment">Production Deployment</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<hr>
+<h2 id="features">Features</h2>
+<h3 id="core-architecture">Core Architecture</h3>
+<h4 id="%F0%9F%9A%80-sharding--scalability">🚀 Sharding &amp; Scalability</h4>
+<ul>
+<li><strong>Automatic Sharding</strong> with dynamic shard count calculation</li>
+<li><strong>Per-Shard Health Monitoring</strong> with WebSocket ping tracking</li>
+<li><strong>IPC Communication</strong> between manager and shards</li>
+<li><strong>Graceful Restarts</strong> with exponential backoff retry logic</li>
+<li><strong>Process Isolation</strong> - Each shard runs in its own process</li>
+<li><strong>Shard Routing</strong> for cross-shard operations</li>
+</ul>
+<h4 id="%F0%9F%92%BE-database--state-management">💾 Database &amp; State Management</h4>
+<ul>
+<li><strong>PostgreSQL 16</strong> with full ACID compliance</li>
+<li><strong>Connection Pooling</strong> (configurable max connections)</li>
+<li><strong>Atomic Transactions</strong> for critical operations (warns, bans, config)</li>
+<li><strong>Automatic Migrations</strong> on startup</li>
+<li><strong>Redis 7 Caching</strong> for distributed state</li>
+<li><strong>Limp Mode</strong> - Graceful degradation when Redis unavailable</li>
+<li><strong>Query Parameterization</strong> for SQL injection prevention</li>
+</ul>
+<h4 id="%F0%9F%8E%A8-component-system">🎨 Component System</h4>
+<ul>
+<li><strong>HMAC-Signed Custom IDs</strong> with expiry validation</li>
+<li><strong>Persistent Components</strong> - Buttons/selects survive restarts</li>
+<li><strong>Anti-Replay Protection</strong> prevents duplicate submissions</li>
+<li><strong>Database-Backed State</strong> for component data</li>
+<li><strong>Middleware Integration</strong> - Permissions, cooldowns built-in</li>
+<li><strong>Type Support</strong> - Buttons, select menus (all types), modals</li>
+<li><strong>Context Validation</strong> ensures components used correctly</li>
+</ul>
+<h4 id="%E2%8F%B0-job-scheduling-system">⏰ Job Scheduling System</h4>
+<ul>
+<li><strong>Delayed Action Execution</strong> (unbans, unlocks, timeout renewals)</li>
+<li><strong>Priority Queuing</strong> (unbans &gt; timeouts &gt; unlocks)</li>
+<li><strong>Automatic Retry</strong> with exponential backoff</li>
+<li><strong>Batch Processing</strong> for efficiency (configurable batch size)</li>
+<li><strong>Job Cleanup</strong> - Auto-removal of completed/failed jobs</li>
+<li><strong>Idempotency Keys</strong> prevent duplicate execution</li>
+<li><strong>Job Cancellation</strong> when actions manually reversed</li>
+</ul>
+<h4 id="%F0%9F%93%8A-monitoring--health">📊 Monitoring &amp; Health</h4>
+<ul>
+<li><strong>Prometheus Metrics</strong> export on <code>/metrics</code></li>
+<li><strong>Health Endpoints</strong> - liveness, readiness, deep health checks</li>
+<li><strong>JSON Stats API</strong> at <code>/metrics.json</code></li>
+<li><strong>Per-Shard Metrics</strong> - guilds, ping, ready status</li>
+<li><strong>Command Statistics</strong> - execution count, errors</li>
+<li><strong>IPC Latency Tracking</strong></li>
+<li><strong>Maintenance Mode</strong> toggle</li>
+</ul>
+<hr>
+<h3 id="moderation-features">Moderation Features</h3>
+<h4 id="%E2%9A%96%EF%B8%8F-infraction-system">⚖️ Infraction System</h4>
+<ul>
+<li><strong>Warning System</strong> with UUID case tracking</li>
+<li><strong>Threshold Auto-Actions</strong> - Escalate at configurable warn counts</li>
+<li><strong>Temporary Punishments</strong> - All actions support duration</li>
+<li><strong>Warn Decay</strong> - Configurable expiry (e.g., 30 days)</li>
+<li><strong>Case Management</strong> - Full audit trail with search</li>
+<li><strong>Hierarchy Validation</strong> - Cannot moderate higher ranks</li>
+<li><strong>DM Notifications</strong> - User notification with failure tracking</li>
+<li><strong>Revocation Support</strong> - Remove infractions with audit</li>
+</ul>
+<h4 id="%F0%9F%94%A8-punishment-actions">🔨 Punishment Actions</h4>
+<ul>
+<li><strong>Ban</strong> - Temporary (10s-365d) or permanent with scheduled unban</li>
+<li><strong>Unban</strong> - Username or ID search with job cancellation</li>
+<li><strong>Timeout</strong> - Discord native timeout (max 28 days)</li>
+<li><strong>Kick</strong> - Immediate removal from server</li>
+<li><strong>Warn</strong> - Issue warnings with auto-escalation</li>
+<li><strong>Softban</strong> - Ban + immediate unban (message deletion)</li>
+<li><strong>Mute</strong> - Timeout alias for familiarity</li>
+</ul>
+<h4 id="%F0%9F%9B%A1%EF%B8%8F-automod-engine">🛡️ AutoMod Engine</h4>
+<p><strong>Rule Types:</strong></p>
+<ul>
+<li><strong>Spam Detection</strong> - Message frequency (5 msgs/5s default)</li>
+<li><strong>Channel Spam</strong> - Cross-channel abuse (3 channels/10s)</li>
+<li><strong>Mention Spam</strong> - Excessive mentions (4+/5s)</li>
+<li><strong>Caps Lock</strong> - Excessive capitals (70% threshold)</li>
+<li><strong>Invite Links</strong> - Discord invite detection</li>
+<li><strong>External Links</strong> - URL detection (excludes Discord)</li>
+<li><strong>Keyword Filter</strong> - Custom word/phrase blocking</li>
+<li><strong>Regex Patterns</strong> - Advanced pattern matching</li>
+</ul>
+<p><strong>Features:</strong></p>
+<ul>
+<li><strong>Multiple Actions</strong> per rule (delete + warn + timeout)</li>
+<li><strong>Role Exemptions</strong> (max 10 per rule)</li>
+<li><strong>Channel Exemptions</strong> (max 20 per rule)</li>
+<li><strong>Quarantine System</strong> - Auto-disable problematic rules</li>
+<li><strong>Error Tracking</strong> - Disable after 3 consecutive errors</li>
+<li><strong>Version Control</strong> - Track rule changes</li>
+<li><strong>Redis State</strong> - Distributed checking across shards</li>
+<li><strong>Violation Logging</strong> - Full analytics</li>
+</ul>
+<h4 id="%F0%9F%93%81-channel-management">📁 Channel Management</h4>
+<ul>
+<li><strong>Lock/Unlock</strong> - Temporary or permanent with auto-unlock</li>
+<li><strong>Slowmode</strong> - Rate limits (0-6 hours) with auto-removal</li>
+<li><strong>Archive</strong> - Export messages (JSON + CSV) and move to archive</li>
+<li><strong>Thread Support</strong> - Lock, unlock, archive threads</li>
+<li><strong>Permission Sync</strong> - Category inheritance tracking</li>
+</ul>
+<h4 id="%F0%9F%97%91%EF%B8%8F-bulk-operations">🗑️ Bulk Operations</h4>
+<ul>
+<li>
+<p><strong>Message Purge</strong> (1-100 messages):</p>
+<ul>
+<li>Filter by user</li>
+<li>Exclude specific user</li>
+<li>Keyword search (comma-separated, ALL required)</li>
+<li>Bots only</li>
+<li>Attachments only</li>
+<li>Exclude pinned</li>
+<li>Handles &gt;14-day-old messages</li>
+</ul>
+</li>
+<li>
+<p><strong>Reaction Purge</strong> (1-500 messages):</p>
+<ul>
+<li>Filter by user</li>
+<li>Filter by emoji (unicode or custom)</li>
+<li>Optimized bulk removal</li>
+</ul>
+</li>
+<li>
+<p><strong>Invite Purge</strong>:</p>
+<ul>
+<li>Delete all invites</li>
+<li>Delete invites older than N days</li>
+<li>Never touches vanity URL</li>
+<li>Confirmation prompt with preview</li>
+</ul>
+</li>
+</ul>
+<h4 id="%F0%9F%93%9D-configuration">📝 Configuration</h4>
+<ul>
+<li><strong>Warn Thresholds</strong> - Auto-actions at specific counts</li>
+<li><strong>Guild Settings</strong> - Per-guild configuration</li>
+<li><strong>Config Snapshots</strong> - Version tracking</li>
+<li><strong>DM Preferences</strong> - Toggle user notifications</li>
+<li><strong>Role Management</strong> - Bulk add/clear with hierarchy check</li>
+</ul>
+<hr>
+<h2 id="quality-of-life-commands">Quality of Life Commands</h2>
+<blockquote>
+<p>For full command documentation, see <a href="COMMANDS.md">COMMANDS.md</a></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+<th>Key Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/purge</code></td>
+<td>Bulk delete messages</td>
+<td>Filter by user, exclude user, keywords (comma-separated), bots, attachments</td>
+</tr>
+<tr>
+<td><code>/warns</code></td>
+<td>View user warnings</td>
+<td>Shows case IDs, relative timestamps, moderator names</td>
+</tr>
+<tr>
+<td><code>/case</code></td>
+<td>View case details</td>
+<td>Search by ID or user+number (1 = most recent)</td>
+</tr>
+<tr>
+<td><code>/history</code></td>
+<td>Recent mod actions</td>
+<td>Filter by action type, actor; shows compact timeline</td>
+</tr>
+<tr>
+<td><code>/backup</code></td>
+<td>Export audit logs</td>
+<td>CSV/JSON format, custom action filters</td>
+</tr>
+<tr>
+<td><code>/archive</code></td>
+<td>Export &amp; archive channel</td>
+<td>JSON + CSV export, auto-categorize, lock channel</td>
+</tr>
+<tr>
+<td><code>/membercount</code></td>
+<td>Server statistics</td>
+<td>Online/offline breakdown, visual presence bar, join stats</td>
+</tr>
+<tr>
+<td><code>/channelinfo</code></td>
+<td>Channel details</td>
+<td>Permissions, sync status, last activity</td>
+</tr>
+<tr>
+<td><code>/messageinfo</code></td>
+<td>Message inspector</td>
+<td>Jump button, edit history, attachment details</td>
+</tr>
+<tr>
+<td><code>/perms</code></td>
+<td>Check permissions</td>
+<td>Permission matrix, missing perms, explicit denies</td>
+</tr>
+<tr>
+<td><code>/can</code></td>
+<td>Self-permission check</td>
+<td>Quick yes/no answer with details</td>
+</tr>
+<tr>
+<td><code>/roleinfo</code></td>
+<td>Role information</td>
+<td>Member count, permissions, hierarchy position</td>
+</tr>
+<tr>
+<td><code>/serverinfo</code></td>
+<td>Server statistics</td>
+<td>Members, channels, boosts, features</td>
+</tr>
+<tr>
+<td><code>/userinfo</code></td>
+<td>User/member info</td>
+<td>Badges, join date, roles, permissions</td>
+</tr>
+<tr>
+<td><code>/avatar</code></td>
+<td>Get user avatar</td>
+<td>PNG/JPG/WEBP/GIF download links, 1024px</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="architecture">Architecture</h2>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────┐
+│                  ShardingManager (void.js)                   │
+│          Process Manager &amp; Health Server (:3001)             │
+│                                                              │
+│  Features:                                                   │
+│  • Automatic shard count calculation                         │
+│  • Health monitoring &amp; metrics collection                    │
+│  • IPC message routing                                       │
+│  • Graceful shutdown handling                                │
+│  • Prometheus metrics export                                 │
+└────────────┬────────────────────────────────────────────────┘
+             │ Spawns &amp; Monitors
+             │
+             ├──────────────┬──────────────┬──────────────┬────────────
+             ▼              ▼              ▼              ▼
+        ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
+        │ Shard 0 │   │ Shard 1 │   │ Shard 2 │   │ Shard N │
+        │         │   │         │   │         │   │         │
+        │ Events  │   │ Events  │   │ Events  │   │ Events  │
+        │ Commands│   │ Commands│   │ Commands│   │ Commands│
+        │ Jobs    │   │ Jobs    │   │ Jobs    │   │ Jobs    │
+        │ AutoMod │   │ AutoMod │   │ AutoMod │   │ AutoMod │
+        └────┬────┘   └────┬────┘   └────┬────┘   └────┬────┘
+             │             │             │             │
+             └─────────────┴─────────────┴─────────────┘
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+         ┌─────────────┐       ┌──────────┐
+         │ PostgreSQL  │       │  Redis   │
+         │   (Docker)  │       │ (Docker) │
+         │             │       │          │
+         │ • Infractions      │ • Guild Configs    │
+         │ • Guild Config     │ • AutoMod State    │
+         │ • Scheduled Jobs   │ • Rate Limits      │
+         │ • Audit Logs       │ • Component Cache  │
+         │ • User Notes       │ • Session Data     │
+         └─────────────┘       └──────────┘
+</div></code></pre>
+<h3 id="data-flow">Data Flow</h3>
+<ol>
+<li><strong>Discord Event</strong> → Shard → Event Handler</li>
+<li><strong>Command Execution</strong> → Middleware Check → Database Transaction</li>
+<li><strong>AutoMod Trigger</strong> → Redis State Check → Action Application</li>
+<li><strong>Job Schedule</strong> → Database Insert → Worker Pickup → Execution</li>
+<li><strong>Component Interaction</strong> → HMAC Validation → Handler Execution</li>
+</ol>
+<hr>
+<h2 id="installation">Installation</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li><strong>Node.js</strong> v18 or higher (v20+ recommended)</li>
+<li><strong>Docker</strong> &amp; <strong>Docker Compose</strong></li>
+<li><strong>Discord Bot Token</strong> from <a href="https://discord.com/developers/applications">Discord Developer Portal</a></li>
+</ul>
+<h3 id="quick-start">Quick Start</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># 1. Clone repository</span>
+git <span class="hljs-built_in">clone</span> https://github.com/Zenzxnse/void-bot.git
+<span class="hljs-built_in">cd</span> void-bot
+
+<span class="hljs-comment"># 2. Install dependencies</span>
+npm install
+
+<span class="hljs-comment"># 3. Start Docker services (PostgreSQL &amp; Redis)</span>
+docker-compose up -d
+
+<span class="hljs-comment"># 4. Wait for database to be ready</span>
+docker-compose logs -f db
+<span class="hljs-comment"># Wait for "database system is ready to accept connections"</span>
+
+<span class="hljs-comment"># 5. Copy environment template</span>
+cp example.env .env
+
+<span class="hljs-comment"># 6. Edit .env with your configuration</span>
+nano .env  <span class="hljs-comment"># or your preferred editor</span>
+
+<span class="hljs-comment"># 7. Register slash commands</span>
+npm run register
+
+<span class="hljs-comment"># 8. Start the bot</span>
+npm run dev  <span class="hljs-comment"># Development mode</span>
+<span class="hljs-comment"># or</span>
+npm start    <span class="hljs-comment"># Production mode</span>
+</div></code></pre>
+<hr>
+<h2 id="configuration">Configuration</h2>
+<h3 id="basic-configuration">Basic Configuration</h3>
+<p>Edit <code>src/core/config.js</code>:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-comment">// Folder structure</span>
+  <span class="hljs-attr">COMMANDS_FOLDER</span>: <span class="hljs-string">"commands"</span>,
+  <span class="hljs-attr">EVENTS_FOLDER</span>: <span class="hljs-string">"events"</span>,
+  <span class="hljs-attr">BUTTONS_FOLDER</span>: <span class="hljs-string">"buttons"</span>,
+  
+  <span class="hljs-comment">// Command registration</span>
+  <span class="hljs-attr">GLOBAL</span>: <span class="hljs-literal">false</span>,  <span class="hljs-comment">// Set to true for global commands (1 hour cache)</span>
+  <span class="hljs-attr">GUILD_IDS</span>: [    <span class="hljs-comment">// Test guild IDs (instant updates)</span>
+    <span class="hljs-string">"123456789012345678"</span>,
+  ],
+  
+  <span class="hljs-comment">// Logging</span>
+  <span class="hljs-attr">LOG_LEVEL</span>: <span class="hljs-string">"info"</span>,  <span class="hljs-comment">// debug|info|warn|error|silent</span>
+  <span class="hljs-attr">LOG_REDACT</span>: <span class="hljs-string">"token,authorization,headers.authorization,env.VOID_TOKEN"</span>,
+  
+  <span class="hljs-comment">// Component system</span>
+  <span class="hljs-attr">BUTTON_IMPORT_CONCURRENCY</span>: <span class="hljs-number">10</span>,
+  <span class="hljs-attr">FAIL_ON_EMPTY_BUTTONS</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">BUTTON_DM_FALLBACK</span>: <span class="hljs-literal">false</span>,
+  
+  <span class="hljs-comment">// Environment</span>
+  <span class="hljs-attr">NODE_ENV</span>: <span class="hljs-string">"development"</span>,  <span class="hljs-comment">// 'production' or 'development'</span>
+};
+</div></code></pre>
+<hr>
+<h2 id="environment-variables">Environment Variables</h2>
+<p>Create a <code>.env</code> file in the project root:</p>
+<h3 id="required-variables">Required Variables</h3>
+<pre class="hljs"><code><div># Discord Configuration (REQUIRED)
+VOID_TOKEN=your_discord_bot_token_here
+APP_ID=your_discord_application_id_here
+OWNER_IDS=your_user_id_here
+
+# Database (REQUIRED - Docker defaults work out of box)
+DATABASE_URL=postgres://void:voidpassword@localhost:5432/voiddb
+PG_MAX=10                    # Connection pool size
+PGSSL=false                  # Set to 'require' in production
+
+# Component Security (REQUIRED)
+COMPONENT_SECRET=$(openssl rand -hex 32)  # Generate with: openssl rand -hex 32
+</div></code></pre>
+<h3 id="optional-variables">Optional Variables</h3>
+<pre class="hljs"><code><div># Redis Configuration (Optional but recommended)
+REDIS_URL=redis://127.0.0.1:6379/0
+REDIS_KEY_PREFIX=void:
+REDIS_LIMP_MODE=1           # Continue without Redis if unavailable
+
+# Sharding
+SHARDING=1                  # Enable sharding (0 to disable)
+TOTAL_SHARDS=auto           # Auto-calculate or specify number
+SHARD_SPAWN_DELAY=7500      # Delay between shard spawns (ms)
+SHARD_RESPAWN_DELAY=5000    # Delay before respawn on crash (ms)
+MAX_RESPAWN_ATTEMPTS=5      # Max auto-restart attempts
+
+# Health &amp; Monitoring
+HEALTH_PORT=3001            # Health endpoint port
+METRICS_INTERVAL=30000      # Metrics collection interval (ms)
+
+# Job System
+JOB_INTERVAL=30000          # Job check interval (ms)
+JOB_BATCH_SIZE=10           # Jobs to process per batch
+
+# Logging Configuration
+LOG_LEVEL=info              # debug|info|warn|error|silent
+LOG=1                       # 0 = disable all logging
+LOG_PRETTY=1                # 1 = pretty print (development)
+LOG_JSON=0                  # 1 = JSON format (production)
+LOG_COLOR=1                 # 1 = colored output
+</div></code></pre>
+<h3 id="ai-configuration-future-feature">AI Configuration (Future Feature)</h3>
+<pre class="hljs"><code><div># AI Configuration (Not yet implemented)
+AI_ENABLED=false
+AI_MODEL=llama-3.1-70b-versatile
+AI_TEMPERATURE=0.7
+AI_MAX_TOKENS=2048
+GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# AI Access Control
+AI_ALLOWED_USERS=comma_separated_user_ids
+AI_OWNERS=your_owner_id_here
+
+# AI Rate Limits (Groq defaults)
+AI_RATE_LIMIT_RPM=30        # Requests per minute
+AI_RATE_LIMIT_TPM=30000     # Tokens per minute
+AI_RATE_LIMIT_RPD=1000      # Requests per day
+AI_RATE_LIMIT_TPD=500000    # Tokens per day
+
+# AI Queue Configuration
+AI_QUEUE_CONCURRENCY=5
+AI_QUEUE_MAX_RETRIES=3
+</div></code></pre>
+<h3 id="environment-variable-details">Environment Variable Details</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VOID_TOKEN</code></td>
+<td>-</td>
+<td>Discord bot token (required)</td>
+</tr>
+<tr>
+<td><code>APP_ID</code></td>
+<td>-</td>
+<td>Discord application ID (required)</td>
+</tr>
+<tr>
+<td><code>OWNER_IDS</code></td>
+<td>-</td>
+<td>Comma-separated bot owner IDs</td>
+</tr>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td>-</td>
+<td>PostgreSQL connection string</td>
+</tr>
+<tr>
+<td><code>PG_MAX</code></td>
+<td>10</td>
+<td>Max database connections</td>
+</tr>
+<tr>
+<td><code>PGSSL</code></td>
+<td>false</td>
+<td>Enable SSL for database (<code>require</code> in production)</td>
+</tr>
+<tr>
+<td><code>REDIS_URL</code></td>
+<td>-</td>
+<td>Redis connection string</td>
+</tr>
+<tr>
+<td><code>REDIS_KEY_PREFIX</code></td>
+<td><code>void:</code></td>
+<td>Prefix for Redis keys</td>
+</tr>
+<tr>
+<td><code>REDIS_LIMP_MODE</code></td>
+<td>1</td>
+<td>Continue without Redis</td>
+</tr>
+<tr>
+<td><code>COMPONENT_SECRET</code></td>
+<td>-</td>
+<td>HMAC secret for component signing (32+ chars)</td>
+</tr>
+<tr>
+<td><code>TOTAL_SHARDS</code></td>
+<td><code>auto</code></td>
+<td>Number of shards or 'auto'</td>
+</tr>
+<tr>
+<td><code>SHARD_SPAWN_DELAY</code></td>
+<td>7500</td>
+<td>MS between shard spawns</td>
+</tr>
+<tr>
+<td><code>HEALTH_PORT</code></td>
+<td>3001</td>
+<td>Health endpoint port</td>
+</tr>
+<tr>
+<td><code>METRICS_INTERVAL</code></td>
+<td>30000</td>
+<td>Metrics collection interval (MS)</td>
+</tr>
+<tr>
+<td><code>JOB_INTERVAL</code></td>
+<td>30000</td>
+<td>Job check interval (MS)</td>
+</tr>
+<tr>
+<td><code>JOB_BATCH_SIZE</code></td>
+<td>10</td>
+<td>Jobs to process per batch</td>
+</tr>
+<tr>
+<td><code>LOG_LEVEL</code></td>
+<td>info</td>
+<td>Logging level</td>
+</tr>
+<tr>
+<td><code>LOG_PRETTY</code></td>
+<td>0</td>
+<td>Pretty print logs (development)</td>
+</tr>
+<tr>
+<td><code>NODE_ENV</code></td>
+<td>development</td>
+<td>Environment mode</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="docker-setup">Docker Setup</h2>
+<p>The bot uses Docker Compose for PostgreSQL and Redis. The bot itself runs on the host (or can be containerized).</p>
+<h3 id="docker-compose-services">Docker Compose Services</h3>
+<pre class="hljs"><code><div><span class="hljs-attr">services:</span>
+  <span class="hljs-attr">db:</span>
+    <span class="hljs-attr">image:</span> <span class="hljs-string">postgres:16</span>
+    <span class="hljs-attr">ports:</span> <span class="hljs-string">["5432:5432"]</span>
+    <span class="hljs-attr">environment:</span>
+      <span class="hljs-attr">POSTGRES_USER:</span> <span class="hljs-string">void</span>
+      <span class="hljs-attr">POSTGRES_PASSWORD:</span> <span class="hljs-string">voidpassword</span>
+      <span class="hljs-attr">POSTGRES_DB:</span> <span class="hljs-string">voiddb</span>
+    <span class="hljs-attr">volumes:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">db_data:/var/lib/postgresql/data</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">./schema:/docker-entrypoint-initdb.d:ro</span>
+    <span class="hljs-attr">healthcheck:</span>
+      <span class="hljs-attr">test:</span> <span class="hljs-string">["CMD-SHELL",</span> <span class="hljs-string">"pg_isready -U void -d voiddb"</span><span class="hljs-string">]</span>
+      <span class="hljs-attr">interval:</span> <span class="hljs-string">5s</span>
+      <span class="hljs-attr">timeout:</span> <span class="hljs-string">3s</span>
+      <span class="hljs-attr">retries:</span> <span class="hljs-number">10</span>
+
+  <span class="hljs-attr">redis:</span>
+    <span class="hljs-attr">image:</span> <span class="hljs-string">redis:7-alpine</span>
+    <span class="hljs-attr">ports:</span> <span class="hljs-string">["6379:6379"]</span>
+    <span class="hljs-attr">command:</span> <span class="hljs-string">redis-server</span> <span class="hljs-string">--appendonly</span> <span class="hljs-literal">yes</span>
+    <span class="hljs-attr">volumes:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">redis_data:/data</span>
+</div></code></pre>
+<h3 id="docker-commands">Docker Commands</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># Start services</span>
+docker-compose up -d
+
+<span class="hljs-comment"># View logs</span>
+docker-compose logs -f db
+docker-compose logs -f redis
+
+<span class="hljs-comment"># Stop services</span>
+docker-compose down
+
+<span class="hljs-comment"># Reset database (WARNING: deletes all data)</span>
+docker-compose down -v
+docker-compose up -d
+
+<span class="hljs-comment"># Database backup</span>
+docker <span class="hljs-built_in">exec</span> void_pg pg_dump -U void voiddb &gt; backup_$(date +%Y%m%d).sql
+
+<span class="hljs-comment"># Database restore</span>
+docker <span class="hljs-built_in">exec</span> -i void_pg psql -U void voiddb &lt; backup.sql
+
+<span class="hljs-comment"># Redis CLI</span>
+docker <span class="hljs-built_in">exec</span> -it void-redis redis-cli
+
+<span class="hljs-comment"># Check service health</span>
+docker-compose ps
+</div></code></pre>
+<hr>
+<h2 id="development">Development</h2>
+<h3 id="project-structure">Project Structure</h3>
+<pre class="hljs"><code><div>void-bot/
+├── src/
+│   ├── commands/              # Slash commands
+│   │   ├── moderation/        # Moderation commands
+│   │   │   ├── ban.js
+│   │   │   ├── warn.js
+│   │   │   ├── automod.js
+│   │   │   └── ...
+│   │   ├── utility/           # Utility commands
+│   │   │   ├── serverinfo.js
+│   │   │   ├── userinfo.js
+│   │   │   └── ...
+│   │   ├── ai/                # AI commands (future)
+│   │   ├── bot/               # Bot management
+│   │   └── fun/               # Fun/game commands
+│   │
+│   ├── components/            # Interactive components
+│   │   ├── buttons/           # Button handlers
+│   │   ├── games/             # Game components
+│   │   ├── ComponentRouter.js # Component routing system
+│   │   └── init.js            # Component initialization
+│   │
+│   ├── core/                  # Core systems
+│   │   ├── db/                # Database layer
+│   │   │   ├── index.js       # Connection pool &amp; queries
+│   │   │   ├── guild.js       # Guild config helpers
+│   │   │   ├── jobs.js        # Job scheduling
+│   │   │   └── migrations/    # SQL migrations
+│   │   │
+│   │   ├── loaders/           # Dynamic loaders
+│   │   │   ├── commandLoader.js
+│   │   │   └── eventLoader.js
+│   │   │
+│   │   ├── middleware/        # Middleware system
+│   │   │   ├── middleware.js  # Permission checks
+│   │   │   └── cooldown.js    # Cooldown system
+│   │   │
+│   │   ├── VoidApp.js         # Extended Client
+│   │   ├── logger.js          # Pino logging
+│   │   ├── config.js          # Bot config
+│   │   └── env-config.js      # Env validation
+│   │
+│   ├── events/                # Discord events
+│   │   ├── ready.js
+│   │   ├── interactionCreate.js
+│   │   ├── on_message.js      # AutoMod trigger
+│   │   └── ...
+│   │
+│   ├── infra/                 # Infrastructure
+│   │   ├── ipc.js             # Inter-process comm
+│   │   ├── redis.js           # Redis client
+│   │   ├── shard-routing.js   # Shard routing
+│   │   └── reply-guard.js     # Anti-replay
+│   │
+│   ├── utils/                 # Utilities
+│   │   ├── automod/
+│   │   │   ├── autoMod.js     # AutoMod engine
+│   │   │   └── redis-state.js # Distributed state
+│   │   │
+│   │   ├── moderation/
+│   │   │   ├── mod-actions.js # Apply actions
+│   │   │   ├── mod-db.js      # Database helpers
+│   │   │   ├── mod.js         # Utility functions
+│   │   │   └── duration.js    # Duration parsing
+│   │   │
+│   │   └── helpers/
+│   │       ├── persistence.js # Component state
+│   │       └── rateLimiter.js # Rate limiting
+│   │
+│   ├── bootstrap/             # Bootstrap scripts
+│   │   ├── error-traps.js     # Global error handlers
+│   │   └── singleton-lock.js  # Process locking
+│   │
+│   ├── graphics/              # Visual assets
+│   │   ├── void.jpg
+│   │   └── bg.jpg
+│   │
+│   ├── shard.js               # Shard process entry
+│   ├── void.js                # Manager process entry
+│   └── commandRegistry.js     # Command registration
+│
+├── schema/                    # Database migrations
+│   ├── 001_init.sql
+│   ├── 002_fix_automod_schema.sql
+│   ├── 003_ai_system.sql
+│   └── 004_rolemenu_system.sql
+│
+├── docs/                      # Documentation
+│   └── component-router.md
+│
+├── docker-compose.yml         # Docker Compose config
+├── Dockerfile                 # Bot container (optional)
+├── .env.example               # Environment template
+├── .gitignore
+├── package.json
+├── README.md
+├── COMMANDS.md                # Command documentation
+└── LICENSE
+</div></code></pre>
+<h3 id="adding-commands">Adding Commands</h3>
+<ol>
+<li>Create <code>src/commands/&lt;category&gt;/&lt;name&gt;.js</code>:</li>
+</ol>
+<pre class="hljs"><code><div><span class="hljs-keyword">import</span> { SlashCommandBuilder, PermissionFlagsBits } <span class="hljs-keyword">from</span> <span class="hljs-string">'discord.js'</span>;
+<span class="hljs-keyword">import</span> { ensureInGuild, safeReply } <span class="hljs-keyword">from</span> <span class="hljs-string">'../../utils/moderation/mod.js'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">data</span>: <span class="hljs-keyword">new</span> SlashCommandBuilder()
+    .setName(<span class="hljs-string">'mycommand'</span>)
+    .setDescription(<span class="hljs-string">'My awesome command'</span>)
+    .addStringOption(<span class="hljs-function"><span class="hljs-params">o</span> =&gt;</span> o
+      .setName(<span class="hljs-string">'input'</span>)
+      .setDescription(<span class="hljs-string">'Some input'</span>)
+      .setRequired(<span class="hljs-literal">true</span>))
+    .setDMPermission(<span class="hljs-literal">false</span>),
+  
+  <span class="hljs-comment">// Middleware</span>
+  <span class="hljs-attr">requiredPerms</span>: [PermissionFlagsBits.ManageMessages],
+  <span class="hljs-attr">requiredBotPerms</span>: [PermissionFlagsBits.SendMessages],
+  <span class="hljs-attr">cooldownMs</span>: <span class="hljs-number">3000</span>,
+  <span class="hljs-attr">guildOnly</span>: <span class="hljs-literal">true</span>,
+  
+  <span class="hljs-keyword">async</span> execute(interaction) {
+    ensureInGuild(interaction);
+    <span class="hljs-keyword">await</span> interaction.deferReply({ <span class="hljs-attr">flags</span>: MessageFlags.Ephemeral });
+    
+    <span class="hljs-keyword">const</span> input = interaction.options.getString(<span class="hljs-string">'input'</span>, <span class="hljs-literal">true</span>);
+    
+    <span class="hljs-comment">// Your logic here</span>
+    
+    <span class="hljs-keyword">return</span> safeReply(interaction, {
+      <span class="hljs-attr">content</span>: <span class="hljs-string">`You said: <span class="hljs-subst">${input}</span>`</span>,
+      <span class="hljs-attr">ephemeral</span>: <span class="hljs-literal">true</span>
+    });
+  }
+};
+</div></code></pre>
+<ol start="2">
+<li>Register commands: <code>npm run register</code></li>
+</ol>
+<h3 id="adding-events">Adding Events</h3>
+<p>Create <code>src/events/&lt;eventName&gt;.js</code>:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">import</span> { Events } <span class="hljs-keyword">from</span> <span class="hljs-string">'discord.js'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">name</span>: Events.MessageCreate,
+  <span class="hljs-attr">once</span>: <span class="hljs-literal">false</span>,
+  
+  <span class="hljs-keyword">async</span> execute(message, client) {
+    <span class="hljs-comment">// Handle event</span>
+    <span class="hljs-keyword">if</span> (message.author.bot) <span class="hljs-keyword">return</span>;
+    
+    <span class="hljs-comment">// Your logic</span>
+  }
+};
+</div></code></pre>
+<h3 id="adding-components">Adding Components</h3>
+<p>Register in <code>src/components/init.js</code>:</p>
+<pre class="hljs"><code><div>router.button(<span class="hljs-string">'mymodule:action'</span>, {
+  <span class="hljs-attr">persistent</span>: <span class="hljs-literal">true</span>,
+  <span class="hljs-attr">defer</span>: <span class="hljs-string">'update'</span>,
+  <span class="hljs-attr">permissions</span>: [PermissionFlagsBits.ManageMessages],
+  
+  <span class="hljs-keyword">async</span> execute(interaction, context) {
+    <span class="hljs-keyword">const</span> { parsed, client, log } = context;
+    
+    <span class="hljs-keyword">await</span> interaction.update({
+      <span class="hljs-attr">content</span>: <span class="hljs-string">'Action completed!'</span>,
+      <span class="hljs-attr">components</span>: []
+    });
+  }
+});
+</div></code></pre>
+<hr>
+<h2 id="health--monitoring">Health &amp; Monitoring</h2>
+<h3 id="health-endpoints">Health Endpoints</h3>
+<p>The manager process exposes endpoints on port 3001 (configurable via <code>HEALTH_PORT</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/health/live</code></td>
+<td>GET</td>
+<td>Liveness check - Is process running?</td>
+</tr>
+<tr>
+<td><code>/health/ready</code></td>
+<td>GET</td>
+<td>Readiness check - Are all shards ready?</td>
+</tr>
+<tr>
+<td><code>/health/deep</code></td>
+<td>GET</td>
+<td>Deep health - WebSocket, database, Redis</td>
+</tr>
+<tr>
+<td><code>/metrics</code></td>
+<td>GET</td>
+<td>Prometheus metrics (text format)</td>
+</tr>
+<tr>
+<td><code>/metrics.json</code></td>
+<td>GET</td>
+<td>JSON stats format</td>
+</tr>
+<tr>
+<td><code>/maintenance/on</code></td>
+<td>POST</td>
+<td>Enable maintenance mode</td>
+</tr>
+<tr>
+<td><code>/maintenance/off</code></td>
+<td>POST</td>
+<td>Disable maintenance mode</td>
+</tr>
+<tr>
+<td><code>/jobs/process</code></td>
+<td>POST</td>
+<td>Manually trigger job processing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-health-checks">Example Health Checks</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># Liveness (basic process check)</span>
+curl http://localhost:3001/health/live
+<span class="hljs-comment"># Response: {"status":"ok","uptime":123.45}</span>
+
+<span class="hljs-comment"># Readiness (all shards ready?)</span>
+curl http://localhost:3001/health/ready
+<span class="hljs-comment"># Response: {"ready":true,"shards":{"0":"ready","1":"ready"}}</span>
+
+<span class="hljs-comment"># Deep health (comprehensive check)</span>
+curl http://localhost:3001/health/deep
+<span class="hljs-comment"># Response: {</span>
+<span class="hljs-comment">#   "status":"healthy",</span>
+<span class="hljs-comment">#   "checks":{</span>
+<span class="hljs-comment">#     "websocket":{"status":"ok","ping":42},</span>
+<span class="hljs-comment">#     "database":{"status":"ok","latency":5},</span>
+<span class="hljs-comment">#     "redis":{"status":"ok","latency":2}</span>
+<span class="hljs-comment">#   }</span>
+<span class="hljs-comment"># }</span>
+
+<span class="hljs-comment"># Prometheus metrics</span>
+curl http://localhost:3001/metrics
+<span class="hljs-comment"># Returns Prometheus-format metrics</span>
+
+<span class="hljs-comment"># JSON stats</span>
+curl http://localhost:3001/metrics.json
+<span class="hljs-comment"># Response: {"shards":[...],"commands":{...},"system":{...}}</span>
+</div></code></pre>
+<h3 id="metrics">Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>discord_shard_status</code></td>
+<td>Gauge</td>
+<td>Shard ready state (1=ready, 0=not ready)</td>
+</tr>
+<tr>
+<td><code>discord_shard_guilds</code></td>
+<td>Gauge</td>
+<td>Number of guilds per shard</td>
+</tr>
+<tr>
+<td><code>discord_shard_ping_ms</code></td>
+<td>Gauge</td>
+<td>WebSocket ping per shard</td>
+</tr>
+<tr>
+<td><code>discord_commands_executed_total</code></td>
+<td>Counter</td>
+<td>Total command executions</td>
+</tr>
+<tr>
+<td><code>discord_command_errors_total</code></td>
+<td>Counter</td>
+<td>Total command errors</td>
+</tr>
+<tr>
+<td><code>discord_ipc_duration_seconds</code></td>
+<td>Histogram</td>
+<td>IPC message latency</td>
+</tr>
+</tbody>
+</table>
+<h3 id="maintenance-mode">Maintenance Mode</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># Enable maintenance (stops job processing)</span>
+curl -X POST http://localhost:3001/maintenance/on
+
+<span class="hljs-comment"># Disable maintenance</span>
+curl -X POST http://localhost:3001/maintenance/off
+</div></code></pre>
+<hr>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-issues">Common Issues</h3>
+<h4 id="shards-not-spawning">Shards Not Spawning</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Check logs</span>
+tail -f void-bot.log
+
+<span class="hljs-comment"># Verify token</span>
+node -e <span class="hljs-string">"console.log(process.env.VOID_TOKEN ? 'Token OK' : 'Token missing')"</span>
+
+<span class="hljs-comment"># Test bot connection</span>
+npm run <span class="hljs-built_in">test</span>:connection
+</div></code></pre>
+<p><strong>Possible causes:</strong></p>
+<ul>
+<li>Invalid token</li>
+<li>Bot not invited to any guilds</li>
+<li>Rate limited by Discord</li>
+<li>Network issues</li>
+</ul>
+<h4 id="database-connection-failed">Database Connection Failed</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Check Docker services</span>
+docker-compose ps
+
+<span class="hljs-comment"># Check database logs</span>
+docker-compose logs db
+
+<span class="hljs-comment"># Test connection</span>
+psql <span class="hljs-variable">$DATABASE_URL</span> -c <span class="hljs-string">"SELECT 1"</span>
+
+<span class="hljs-comment"># Restart database</span>
+docker-compose restart db
+</div></code></pre>
+<p><strong>Common fixes:</strong></p>
+<ul>
+<li>Wait for database health check to pass</li>
+<li>Check <code>DATABASE_URL</code> format</li>
+<li>Verify credentials match docker-compose.yml</li>
+<li>Ensure port 5432 not in use</li>
+</ul>
+<h4 id="redis-connection-issues">Redis Connection Issues</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Check Redis status</span>
+docker-compose logs redis
+
+<span class="hljs-comment"># Test connection</span>
+redis-cli -u <span class="hljs-variable">$REDIS_URL</span> ping
+
+<span class="hljs-comment"># Restart Redis</span>
+docker-compose restart redis
+</div></code></pre>
+<p><strong>Note:</strong> Bot continues with <code>REDIS_LIMP_MODE=1</code> if Redis unavailable.</p>
+<h4 id="components-not-working">Components Not Working</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Verify secret is set</span>
+<span class="hljs-built_in">echo</span> <span class="hljs-variable">$COMPONENT_SECRET</span> | wc -c
+<span class="hljs-comment"># Should be 64+ characters</span>
+
+<span class="hljs-comment"># Clean expired components</span>
+psql <span class="hljs-variable">$DATABASE_URL</span> -c <span class="hljs-string">"SELECT cleanup_expired_components()"</span>
+
+<span class="hljs-comment"># Check component logs</span>
+grep <span class="hljs-string">"component"</span> void-bot.log
+</div></code></pre>
+<p><strong>Common issues:</strong></p>
+<ul>
+<li>Missing or weak <code>COMPONENT_SECRET</code></li>
+<li>Component ID signature mismatch</li>
+<li>Expired component state</li>
+</ul>
+<h4 id="jobs-not-running">Jobs Not Running</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Check job stats</span>
+psql <span class="hljs-variable">$DATABASE_URL</span> -c <span class="hljs-string">"
+  SELECT type, status, COUNT(*) 
+  FROM scheduled_jobs 
+  GROUP BY type, status
+"</span>
+
+<span class="hljs-comment"># Manually trigger processing</span>
+curl -X POST http://localhost:3001/<span class="hljs-built_in">jobs</span>/process
+
+<span class="hljs-comment"># Clean failed jobs</span>
+psql <span class="hljs-variable">$DATABASE_URL</span> -c <span class="hljs-string">"
+  DELETE FROM scheduled_jobs 
+  WHERE status = 'failed' 
+    AND updated_at &lt; NOW() - INTERVAL '7 days'
+"</span>
+</div></code></pre>
+<h4 id="high-memory-usage">High Memory Usage</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Check shard stats</span>
+curl http://localhost:3001/metrics.json
+
+<span class="hljs-comment"># Reduce connection pool</span>
+<span class="hljs-built_in">export</span> PG_MAX=5
+
+<span class="hljs-comment"># Enable Redis cache</span>
+<span class="hljs-built_in">export</span> REDIS_URL=redis://localhost:6379/0
+
+<span class="hljs-comment"># Restart shards</span>
+npm run restart
+</div></code></pre>
+<h4 id="command-not-found">Command Not Found</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Re-register commands</span>
+npm run register
+
+<span class="hljs-comment"># Check command files</span>
+ls -la src/commands/
+
+<span class="hljs-comment"># Verify guild IDs in config.js</span>
+node -e <span class="hljs-string">"import('./src/core/config.js').then(c =&gt; console.log(c.default.GUILD_IDS))"</span>
+</div></code></pre>
+<hr>
+<h2 id="production-deployment">Production Deployment</h2>
+<h3 id="pre-deployment-checklist">Pre-Deployment Checklist</h3>
+<ul>
+<li><input type="checkbox" id="checkbox0"><label for="checkbox0">Set </label><code>NODE_ENV=production</code></li>
+<li><input type="checkbox" id="checkbox1"><label for="checkbox1">Use strong </label><code>COMPONENT_SECRET</code> (64+ chars)</li>
+<li><input type="checkbox" id="checkbox2"><label for="checkbox2">Enable database SSL (</label><code>PGSSL=require</code>)</li>
+<li><input type="checkbox" id="checkbox3"><label for="checkbox3">Configure Redis persistence (AOF or RDB)</label></li>
+<li><input type="checkbox" id="checkbox4"><label for="checkbox4">Set up log aggregation (e.g., Loki, ELK)</label></li>
+<li><input type="checkbox" id="checkbox5"><label for="checkbox5">Configure automated database backups</label></li>
+<li><input type="checkbox" id="checkbox6"><label for="checkbox6">Set up monitoring (Prometheus + Grafana)</label></li>
+<li><input type="checkbox" id="checkbox7"><label for="checkbox7">Configure alerting (Discord webhook, PagerDuty, etc.)</label></li>
+<li><input type="checkbox" id="checkbox8"><label for="checkbox8">Set resource limits (PM2, systemd, or Docker)</label></li>
+<li><input type="checkbox" id="checkbox9"><label for="checkbox9">Enable rate limiting at reverse proxy</label></li>
+<li><input type="checkbox" id="checkbox10"><label for="checkbox10">Configure firewall rules</label></li>
+<li><input type="checkbox" id="checkbox11"><label for="checkbox11">Set up SSL/TLS for health endpoints</label></li>
+<li><input type="checkbox" id="checkbox12"><label for="checkbox12">Document runbooks for common issues</label></li>
+<li><input type="checkbox" id="checkbox13"><label for="checkbox13">Test disaster recovery procedures</label></li>
+</ul>
+<h3 id="recommended-specs">Recommended Specs</h3>
+<table>
+<thead>
+<tr>
+<th>Server Size</th>
+<th>Guilds</th>
+<th>Specs</th>
+<th>Shards</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small</td>
+<td>&lt;100</td>
+<td>1GB RAM, 1 CPU</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>100-1000</td>
+<td>2GB RAM, 2 CPU</td>
+<td>2-4</td>
+</tr>
+<tr>
+<td>Large</td>
+<td>1000-5000</td>
+<td>4GB RAM, 4 CPU</td>
+<td>4-8</td>
+</tr>
+<tr>
+<td>X-Large</td>
+<td>5000+</td>
+<td>8GB+ RAM, 8+ CPU</td>
+<td>8+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="process-management">Process Management</h3>
+<h4 id="using-pm2">Using PM2</h4>
+<pre class="hljs"><code><div><span class="hljs-comment"># Install PM2</span>
+npm install -g pm2
+
+<span class="hljs-comment"># Start bot</span>
+pm2 start src/void.js --name void-bot
+
+<span class="hljs-comment"># Monitor</span>
+pm2 monit
+
+<span class="hljs-comment"># Logs</span>
+pm2 logs void-bot
+
+<span class="hljs-comment"># Restart</span>
+pm2 restart void-bot
+
+<span class="hljs-comment"># Auto-start on boot</span>
+pm2 startup
+pm2 save
+</div></code></pre>
+<h4 id="using-systemd">Using systemd</h4>
+<p>Create <code>/etc/systemd/system/void-bot.service</code>:</p>
+<pre class="hljs"><code><div><span class="hljs-section">[Unit]</span>
+<span class="hljs-attr">Description</span>=Void Bot
+<span class="hljs-attr">After</span>=network.target docker.service
+<span class="hljs-attr">Requires</span>=docker.service
+
+<span class="hljs-section">[Service]</span>
+<span class="hljs-attr">Type</span>=simple
+<span class="hljs-attr">User</span>=void
+<span class="hljs-attr">WorkingDirectory</span>=/opt/void-bot
+<span class="hljs-attr">Environment</span>=<span class="hljs-string">"NODE_ENV=production"</span>
+<span class="hljs-attr">EnvironmentFile</span>=/opt/void-bot/.env
+<span class="hljs-attr">ExecStart</span>=/usr/bin/node src/void.js
+<span class="hljs-attr">Restart</span>=always
+<span class="hljs-attr">RestartSec</span>=<span class="hljs-number">10</span>s
+
+<span class="hljs-section">[Install]</span>
+<span class="hljs-attr">WantedBy</span>=multi-user.target
+</div></code></pre>
+<pre class="hljs"><code><div><span class="hljs-comment"># Enable and start</span>
+sudo systemctl <span class="hljs-built_in">enable</span> void-bot
+sudo systemctl start void-bot
+
+<span class="hljs-comment"># Check status</span>
+sudo systemctl status void-bot
+
+<span class="hljs-comment"># View logs</span>
+sudo journalctl -u void-bot -f
+</div></code></pre>
+<hr>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions are welcome! Please follow these guidelines:</p>
+<h3 id="development-workflow">Development Workflow</h3>
+<ol>
+<li><strong>Fork</strong> the repository</li>
+<li><strong>Clone</strong> your fork: <code>git clone https://github.com/yourusername/void-bot.git</code></li>
+<li><strong>Create</strong> a feature branch: <code>git checkout -b feature/amazing-feature</code></li>
+<li><strong>Commit</strong> your changes: <code>git commit -m 'Add amazing feature'</code></li>
+<li><strong>Push</strong> to branch: <code>git push origin feature/amazing-feature</code></li>
+<li><strong>Open</strong> a Pull Request</li>
+</ol>
+<h3 id="code-standards">Code Standards</h3>
+<ul>
+<li>Use ESLint configuration (Airbnb base)</li>
+<li>Write JSDoc comments for public APIs</li>
+<li>Prefer <code>async/await</code> over <code>.then()</code></li>
+<li>Use named exports</li>
+<li>Keep functions focused and small</li>
+<li>Add tests for new features (when test suite is available)</li>
+<li>Follow existing code style</li>
+</ul>
+<h3 id="commit-messages">Commit Messages</h3>
+<p>Follow <a href="https://www.conventionalcommits.org/">Conventional Commits</a>:</p>
+<pre class="hljs"><code><div>feat: add new purge filter
+fix: correct hierarchy check in ban command
+docs: update README installation steps
+refactor: simplify AutoMod state management
+test: add tests for component router
+chore: update dependencies
+</div></code></pre>
+<h3 id="pull-request-guidelines">Pull Request Guidelines</h3>
+<ul>
+<li>Include description of changes</li>
+<li>Reference related issues</li>
+<li>Update documentation if needed</li>
+<li>Add screenshots for UI changes</li>
+<li>Ensure all checks pass</li>
+</ul>
+<hr>
+<h2 id="license">License</h2>
+<p>This project is licensed under the Apache License 2.0. See <a href="LICENSE">LICENSE</a> for details.</p>
+<pre class="hljs"><code><div>Copyright 2024 Zenzxnse
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</div></code></pre>
+<hr>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<ul>
+<li><strong>Discord.js</strong> - Powerful Discord library</li>
+<li><strong>PostgreSQL</strong> - Reliable database system</li>
+<li><strong>Redis</strong> - Fast in-memory data store</li>
+<li><strong>Pino</strong> - High-performance logging</li>
+<li><strong>Prom-client</strong> - Prometheus metrics</li>
+</ul>
+<hr>
+<h2 id="support">Support</h2>
+<ul>
+<li><strong>Documentation</strong>: <a href="COMMANDS.md">Full command reference</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/Zenzxnse/void-bot/issues">GitHub Issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/Zenzxnse/void-bot/discussions">GitHub Discussions</a></li>
+</ul>
+<hr>
+<div align="center">
+</div><p><strong><a href="#void-bot">⬆ Back to Top</a></strong></p>
+<p>Made with ❤️ by Zenzxnse</p>
+
+
+</body>
+
+</html>
