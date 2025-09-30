@@ -1,10 +1,18 @@
 # Void Bot
 
-<div align="center">
+<div align="center" style="position: relative;">
 
 ![Banner](src/graphics/bg.jpg)
 
-<img src="src/graphics/void.png" alt="Void Bot Avatar" width="150" style="border-radius: 50%; margin-top: -75px; border: 5px solid #1a1a1a;"/>
+<img src="src/graphics/void.png" 
+     alt="Void Bot Avatar" 
+     width="150" 
+     style="border-radius: 50%; 
+            border: 5px solid #1a1a1a; 
+            position: absolute; 
+            top: 60px; 
+            left: 50%; 
+            transform: translateX(-50%);" />
 
 **Version:** 1.0.0-beta  
 **License:** Apache-2.0  
@@ -21,6 +29,7 @@
 [Features](#features) • [Installation](#installation) • [Configuration](#configuration) • [Commands](COMMANDS.md) • [Contributing](#contributing)
 
 </div>
+
 ---
 
 ## Overview
