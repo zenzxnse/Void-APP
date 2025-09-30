@@ -1,368 +1,471 @@
----
-
 # Void Bot
 
-A modern, production-grade Discord bot built with **Node.js** and **discord.js v14**.
-Void Bot emphasizes **reliability**, **observability**, and **developer ergonomics**: file-based loaders, centralized middleware, structured logging (Pino), and fast button routing with **Aho–Corasick**.
+**Version:** 1.0.0-beta  
+**License:** Apache-2.0  
+**Author:** Zenzxnse
+
+A feature-rich Discord moderation and utility bot built with Discord.js, featuring automatic sharding, comprehensive moderation tools.
 
 ---
 
-## ✨ Features
+## Table of Contents
 
-* **Modular, file-based handlers**
-  Add a command, button, or event by creating a file—no central registry to edit. Loaders recurse subfolders for clean grouping (e.g., `buttons/rps/*`).
-
-* **High-performance interaction routing**
-
-  * **Slash Commands**: Standard, predictable.
-  * **Buttons**:
-
-    * **Exact IDs** (`customId`, `customIds`)
-    * **Aho–Corasick keywords** (`keyword`, `keywords`) for fast prefix/contains matching (great for namespacing like `rps_`, `poll_`).
-    * **Custom match functions** (`match(id, interaction, client)`) for dynamic logic.
-
-* **Concurrent loading**
-  Uses `p-limit` to import handlers concurrently (configurable via env), minimizing startup time.
-
-* **Centralized middleware**
-  One place for permissions, cooldowns, guild/DM checks, owner checks—keep handlers focused on business logic.
-
-* **Structured logging (Pino)**
-
-  * Dev: pretty, colorized logs (`pino-pretty`)
-  * Prod: JSON logs with optional redaction (`LOG_REDACT`) for secure ingestion (e.g., Loki, ELK, Datadog).
-
-* **Integrated telemetry**
-  `client.stats` tracks: loaded counts, exec counts per command/button, denials, and error totals. Surface via `/stats` or logs.
-
-* **Graceful error handling & shutdown**
-  Process-level traps for `unhandledRejection`/`uncaughtException` and graceful `SIGINT`/`SIGTERM`.
-
-* **Environment-aware config**
-  Clean split: **secrets in `.env`**, team-safe settings in **`src/core/config.js`**.
+- [Features](#features)
+- [Commands](#commands)
+  - [Moderation](#moderation-commands)
+  - [Utility](#utility-commands)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Docker Setup](#docker-setup)
+- [Health & Monitoring](#health--monitoring)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 📦 Project Structure (evolving)
+## Features
+
+### Core Systems
+- **Automatic Sharding** with health monitoring
+- **PostgreSQL Database** with connection pooling and migrations
+- **Redis Caching** for distributed state management
+- **Job Scheduling** for delayed actions (unbans, unlocks, etc.)
+- **Component Router** with HMAC-signed persistent components
+- **Health Endpoints** with Prometheus metrics
+- **Transaction Support** for atomic operations
+- **(AI moderation/Utilities)** will be added in future
+
+### Moderation
+- Comprehensive infraction system (warns, timeouts, bans, kicks)
+- Warning thresholds with auto-escalation
+- Temporary punishments with automatic removal
+- Channel management (lock, slowmode, archive)
+- Bulk operations (purge messages, reactions, invites)
+- Role management with hierarchy validation
+- AutoMod with multiple rule types
+- Full audit logging
+
+### Utility
+- Server and user information commands
+- Permission checking and validation
+- Channel and message inspection
+- Member statistics and analytics
+- Archive and export functionality
+
+---
+
+## Commands
+
+### Moderation Commands
+
+| Command | Description |
+|---------|-------------|
+| `/ban` | Ban a user (temporary or permanent) |
+| `/unban` | Unban a user and cancel scheduled unbans |
+| `/timeout` | Timeout a member (Discord native, max 28 days) |
+| `/warn` | Issue a warning with optional auto-escalation |
+| `/warns` | List a user's active warnings |
+| `/unwarn` | Remove a specific warning |
+| `/lock` | Lock a channel (temporary or permanent) |
+| `/unlock` | Unlock a channel and cancel scheduled unlocks |
+| `/slowmode` | Set or remove slowmode |
+| `/purge` | Bulk delete messages with filters |
+| `/purge-invites` | Delete server invite links |
+| `/purge-reactions` | Remove reactions from messages |
+| `/roles` | Add or clear roles from members |
+| `/automod` | Configure auto-moderation rules |
+| `/config warn` | Configure warning threshold actions |
+| `/note` | Add, list, edit, or delete staff notes |
+| `/case` | View infraction case details |
+| `/history` | View recent moderation history |
+| `/backup` | Export audit logs to CSV/JSON |
+
+### Utility Commands
+
+| Command | Description |
+|---------|-------------|
+| `/archive` | Export messages and archive a channel |
+| `/avatar` | Get a user's avatar in multiple formats |
+| `/channelinfo` | Detailed channel information |
+| `/membercount` | Server member statistics |
+| `/messageinfo` | Get details about a specific message |
+| `/perms` | Check user permissions in a channel |
+| `/can` | Check your own permissions |
+| `/roleinfo` | Display role information |
+| `/serverinfo` | Comprehensive server statistics |
+| `/userinfo` | User and member information |
+
+### AI Features
+
+- `/ask` - Chat with AI (Groq or Gemini integration)
+- Configurable rate limits (RPM, TPM, RPD, TPD)
+- Access control with allowlists
+- Queue system with retry logic
+
+---
+
+## Architecture
 
 ```
-src/
-  components/
-    buttons/            # Button handlers (recurse subfolders)
-  commands/             # Slash commands
-  core/                 # Core utilities & runtime
-    config.js           # Non-secret app config (committable)
-    logger.js           # Pino logger + helpers
-    middleware.js       # Shared validation (perms, cooldowns, etc.)
-    VoidApp.js          # Client bootstrap (traps, loading, login)
-  events/               # Discord.js events (e.g., ready, guildCreate)
-  loaders/              # File-based loaders
-    buttonLoader.js     # (If you keep a separate loader) - else using core/buttonHandler.js
-    commandLoader.js
-    eventLoader.js
-  index.js              # App entrypoint
-.env                    # Secrets (DO NOT COMMIT)
-.env.example            # Template for secrets
-package.json
+┌─────────────────────────────────────────────────────────┐
+│                ShardingManager (void.js)                 │
+│        Process Manager & Health Server (port 3001)       │
+└────────────┬────────────────────────────────────────────┘
+             │ Spawns & Monitors
+             ├──────────────┬──────────────┬──────────────┐
+             ▼              ▼              ▼              ▼
+        ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
+        │ Shard 0 │   │ Shard 1 │   │ Shard 2 │   │ Shard N │
+        │(shard.js)│  │(shard.js)│  │(shard.js)│  │(shard.js)│
+        └────┬────┘   └────┬────┘   └────┬────┘   └────┬────┘
+             │             │             │             │
+             └─────────────┴─────────────┴─────────────┘
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+         ┌─────────────┐       ┌──────────┐
+         │ PostgreSQL  │       │  Redis   │
+         │   (Docker)  │       │ (Docker) │
+         └─────────────┘       └──────────┘
 ```
 
-> **Note:** The button system is implemented in **`src/core/buttonHandler.js`** and **owns** button dispatch. Keep `events/interactionCreate.js` focused on **commands only**, or remove its button logic to avoid double-handling.
+### Key Components
+
+- **Manager** (`void.js`) - Spawns shards, collects metrics, serves health endpoints
+- **Shard** (`shard.js`) - Discord gateway connection, event handling, job processing
+- **VoidApp** (`VoidApp.js`) - Extended Discord.js Client
+- **Component Router** - Handles persistent buttons, select menus, and modals
+- **AutoMod Engine** - Message scanning with Redis-backed state
+- **Job Worker** - Processes scheduled tasks (unbans, unlocks, etc.)
 
 ---
 
-## 🚀 Quickstart
+## Installation
 
 ### Prerequisites
 
-* **Node.js 18+**
-* A Discord application & bot token
+- **Node.js** v18 or higher
+- **Docker** & **Docker Compose**
+- **Discord Bot Token** from [Discord Developer Portal](https://discord.com/developers/applications)
 
-### Install dependencies
+### Setup
 
+1. **Clone the repository**
 ```bash
-npm i discord.js dotenv p-limit pino pino-pretty aho-corasick
+git clone https://github.com/Zenzxnse/void-bot.git
+cd void-bot
 ```
 
-### Configure secrets (`.env`)
-
-Copy `.env.example` to `.env`, then fill values:
-
-```dotenv
-VOID_TOKEN="YOUR_DISCORD_BOT_TOKEN"
-APP_ID="YOUR_DISCORD_APP_ID"
-GUILD_ID="YOUR_DEV_GUILD_ID"   # for fast, guild-scoped command registration
-GEMINI_API_KEY="optional"
-GROQ_KEY="optional"
-```
-
-### Configure non-secrets (`src/core/config.js`)
-
-```js
-export default {
-  COMMANDS_FOLDER: 'commands',
-  EVENTS_FOLDER: 'events',
-  BUTTONS_FOLDER: 'buttons',
-  GLOBAL: false,                   // true = register slash commands globally (slow propagation)
-  AI_ALLOWED_LIST: [747400496402268243], // example
-  NODE_ENV: 'development',
-  LOG_LEVEL: 'info',
-  // Comma- or space-separated redaction paths (pino supports array too)
-  LOG_REDACT: 'token,authorization,headers.authorization,env.VOID_TOKEN',
-};
-```
-
-> **Precedence:** Secrets live in `.env` (loaded by `dotenv`). Non-secrets (safe to commit) live in `config.js`.
-
----
-
-## 🧰 NPM Scripts
-
+2. **Install dependencies**
 ```bash
-# Development (auto-restart, pretty logs)
-npm run dev
+npm install
+```
 
-# Production start (JSON logs)
-npm run start
+3. **Start Docker services** (PostgreSQL & Redis)
+```bash
+docker-compose up -d
+```
 
-# Register slash commands (reads COMMANDS_FOLDER)
-# - Guild scope by default (instant updates)
-# - Set GLOBAL=true in config.js for global scope (can take up to an hour)
+4. **Configure environment** (see [Configuration](#configuration))
+
+5. **Run database migrations** (automatic on first start)
+
+6. **Register slash commands**
+```bash
 npm run register
 ```
 
-*(Define these in `package.json` if not present.)*
+7. **Start the bot**
+```bash
+# Development
+npm run dev
 
----
-
-## 🔑 OAuth2 & Intents
-
-* **Scopes:** `bot applications.commands`
-* **Recommended bot permissions:**
-  At minimum: `SendMessages`, `EmbedLinks`, `UseExternalEmojis`
-* **Intents (in client):** `Guilds`, `GuildMessages`, `MessageContent` (document why you need MessageContent if enabled)
-
----
-
-## 🧩 Handlers
-
-### Slash Commands
-
-**File:** `src/commands/user.js`
-
-```js
-import { SlashCommandBuilder } from 'discord.js';
-
-export const data = new SlashCommandBuilder()
-  .setName('user')
-  .setDescription('Shows info about the user');
-
-export const cooldownMs = 5000; // optional (handled in middleware)
-
-export async function execute(interaction) {
-  await interaction.reply(`This command was run by ${interaction.user.username}.`);
-}
-```
-
-**Notes**
-
-* Loader validates `data.name`, `execute`.
-* If you change names/options, re-run `npm run register`.
-
----
-
-### Buttons (via `core/buttonHandler.js`)
-
-**What the loader understands**
-
-* `customId: string` (exact)
-* `customIds: string[]` (multiple exact)
-* `keyword: string` / `keywords: string[]` (Aho–Corasick fast matching; store lowercased)
-* `match(id, interaction, client)` → `boolean | object | Promise<...>` (custom logic)
-* Optional metadata: `defer`, `ephemeral`, `cooldownMs`, `requiredPerms`, `guildOnly`, etc.
-
-**Minimal example** – exact IDs:
-
-```js
-// src/components/buttons/rps/rpsButtons.js
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-
-export const customIds = ['rps_rock', 'rps_paper', 'rps_scissor']; // routing keys
-export const defer = true; // auto-defer reply (see note below)
-
-export const rpsButtons = [
-  new ButtonBuilder().setCustomId('rps_rock').setLabel('Rock').setStyle(ButtonStyle.Primary),
-  new ButtonBuilder().setCustomId('rps_paper').setLabel('Paper').setStyle(ButtonStyle.Primary),
-  new ButtonBuilder().setCustomId('rps_scissor').setLabel('Scissors').setStyle(ButtonStyle.Primary),
-];
-
-export async function execute(interaction) {
-  const [, choice] = interaction.customId.split('_'); // 'rock' | 'paper' | 'scissor'
-  // After defer, we must edit the reply:
-  await interaction.editReply({ content: `You chose **${choice}**!`, components: [] });
-}
-```
-
-**A keyword/prefix example** – Aho–Corasick:
-
-```js
-export const keywords = ['poll_', 'poll:']; // any ID containing either will match
-export const defer = 'reply'; // auto-defer with a reply
-
-export async function execute(interaction) {
-  // context.match is set to the keyword that matched (if you use it in your handler)
-  await interaction.editReply({ content: `Received poll action: ${interaction.customId}` });
-}
-```
-
-> **Why have `customIds` if we can set IDs on `ButtonBuilder`?**
-> The builder defines the ID *on the message component*. The loader needs to know what **incoming** IDs it should route to this file. Declaring `customId`/`customIds`/`keywords` in the handler connects the incoming interaction to your file. (You’ll still set the actual IDs on the built buttons you send.)
-
----
-
-## 🧱 Middleware (centralized)
-
-Add properties to any handler (command or button), and middleware enforces them:
-
-* `cooldownMs`
-* `requiredPerms`, `requiredBotPerms`
-* `guildOnly`, `dmPermission`
-* `ownerOnly`, `ownerBypass`
-
-This keeps handlers focused on the “what”, not the “can we”.
-
----
-
-## 🧪 Example: Sending buttons from a command
-
-```js
-// src/commands/rps.js
-import { SlashCommandBuilder, ActionRowBuilder } from 'discord.js';
-import { rpsButtons } from '../components/buttons/rps/rpsButtons.js';
-
-export const data = new SlashCommandBuilder()
-  .setName('rps')
-  .setDescription('Play Rock/Paper/Scissors with the bot');
-
-export async function execute(interaction) {
-  const row = new ActionRowBuilder().addComponents(rpsButtons);
-  await interaction.reply({ content: 'Pick one:', components: [row] });
-}
+# Production
+npm start
 ```
 
 ---
 
-## 🪵 Logging
+## Configuration
 
-Powered by **Pino** via `src/core/logger.js`.
+### Environment Variables
 
-* **Dev**: pretty, color, human timestamps
-* **Prod**: JSON logs; configure redaction via `LOG_REDACT` (comma/space separated)
+Create a `.env` file in the project root:
 
-Helpers:
+```env
+# Discord
+VOID_TOKEN=your_bot_token_here
+APP_ID=your_application_id_here
+OWNER_IDS=your_user_id_here
 
-* `createLogger({ mod })` – module-scoped logger
-* `forInteraction(interaction)` – child logger enriched with `interactionId`, `guildId`, `channelId`, `userId`, etc.
+# Database (Docker defaults)
+DATABASE_URL=postgres://void:voidpassword@localhost:5432/voiddb
 
----
+# Redis (Docker defaults)
+REDIS_URL=redis://127.0.0.1:6379/0
+REDIS_KEY_PREFIX=void:
+REDIS_LIMP_MODE=1
 
-## ⚠️ Ephemeral replies & the “Unknown interaction (10062)” error
+# Component System
+COMPONENT_SECRET=$(openssl rand -hex 32)
 
-* **Always reply or defer within \~3 seconds.**
-  Heavy work? **Defer first**, then `editReply`.
+# AI Configuration
+AI_ENABLED=true
+AI_MODEL=llama-3.1-70b-versatile
+GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+AI_ALLOWED_USERS=comma_separated_user_ids
+AI_RATE_LIMIT_RPM=30
+AI_RATE_LIMIT_TPM=30000
 
-* **Deprecated `ephemeral` warning**
-  Some low-level REST paths warn that `ephemeral` is deprecated in favor of **flags**.
+# Logging
+LOG_LEVEL=info
+LOG_PRETTY=1
+NODE_ENV=development
 
-  * High-level `discord.js` helpers accept `ephemeral: true` and set flags internally.
-  * If you call low-level REST, set `flags: 1 << 6` (64) for ephemeral.
+# Sharding
+TOTAL_SHARDS=auto
 
-Examples:
-
-```js
-// High-level (discord.js) – OK
-await interaction.deferReply({ ephemeral: true });    // or reply({ ephemeral: true })
-
-// Low-level (REST) – prefer flags
-await interaction.deferReply({ flags: 1 << 6 });      // EPHEMERAL
+# Health & Metrics
+HEALTH_PORT=3001
+METRICS_INTERVAL=30000
 ```
 
-* **Duplicate listeners cause chaos**
-  Let **`core/buttonHandler.js`** own buttons.
-  If you also handle buttons inside `events/interactionCreate.js`, you’ll see unsupported type logs or double-acks.
+### Bot Configuration
+
+Edit `src/core/config.js`:
+
+```javascript
+export default {
+  COMMANDS_FOLDER: "commands",
+  EVENTS_FOLDER: "events",
+  BUTTONS_FOLDER: "buttons",
+  GLOBAL: false, // Set to true for global commands
+  GUILD_IDS: ["your_test_guild_id"], // For testing
+  LOG_LEVEL: "info",
+  NODE_ENV: "development",
+};
+```
 
 ---
 
-## 🧭 Configuration Reference
+## Development
 
-| Key                    | Where                  | Type    | Default       | Notes                                       |       |      |      |       |         |
-| ---------------------- | ---------------------- | ------- | ------------- | ------------------------------------------- | ----- | ---- | ---- | ----- | ------- |
-| `COMMANDS_FOLDER`      | `core/config.js`       | string  | `commands`    | Folder name (relative to `src/`)            |       |      |      |       |         |
-| `EVENTS_FOLDER`        | `core/config.js`       | string  | `events`      | Folder name (relative to `src/`)            |       |      |      |       |         |
-| `BUTTONS_FOLDER`       | `core/config.js`       | string  | `buttons`     | Folder name (relative to `src/components/`) |       |      |      |       |         |
-| `GLOBAL`               | `core/config.js`       | boolean | `false`       | Slash command registration scope            |       |      |      |       |         |
-| `NODE_ENV`             | `core/config.js` / env | string  | `development` | Influences logging & dev checks             |       |      |      |       |         |
-| `LOG_LEVEL`            | `core/config.js` / env | string  | `info`        | \`trace                                     | debug | info | warn | error | fatal\` |
-| `LOG_REDACT`           | `core/config.js` / env | string  | `…`           | Comma/space-separated redaction paths       |       |      |      |       |         |
-| `*_IMPORT_CONCURRENCY` | env                    | number  | `10`          | `COMMAND_`, `EVENT_`, `BUTTON_`             |       |      |      |       |         |
+### Project Structure
 
-**Secrets (in `.env`):**
+```
+void-bot/
+├── src/
+│   ├── commands/           # Slash commands
+│   │   ├── moderation/     # Moderation commands
+│   │   ├── utility/        # Utility commands
+│   │   ├── ai/             # AI commands
+│   │   ├── bot/            # Bot management commands
+│   │   └── fun/            # Fun/game commands
+│   ├── components/         # Buttons, select menus, modals
+│   │   ├── buttons/
+│   │   ├── games/
+│   │   ├── ComponentRouter.js
+│   │   └── init.js
+│   ├── core/
+│   │   ├── db/             # Database utilities
+│   │   │   ├── index.js
+│   │   │   ├── guild.js
+│   │   │   ├── jobs.js
+│   │   │   └── migrations/
+│   │   ├── loaders/        # Command & event loaders
+│   │   ├── middleware/     # Permission & cooldown checks
+│   │   ├── VoidApp.js      # Extended Discord.js Client
+│   │   ├── logger.js       # Pino logging
+│   │   └── config.js       # Bot configuration
+│   ├── events/             # Discord event handlers
+│   ├── infra/              # Infrastructure
+│   │   ├── ipc.js
+│   │   ├── redis.js
+│   │   ├── shard-routing.js
+│   │   └── reply-guard.js
+│   ├── utils/
+│   │   ├── automod/        # AutoMod engine
+│   │   ├── moderation/     # Moderation utilities
+│   │   └── helpers/
+│   ├── shard.js            # Shard process entry
+│   └── void.js             # Manager process entry
+├── schema/                 # Database migrations
+├── docker-compose.yml
+├── Dockerfile
+└── package.json
+```
 
-* `VOID_TOKEN`, `APP_ID`, `GUILD_ID`
-* `GEMINI_API_KEY`, `GROQ_KEY` (optional)
+### Adding Commands
+
+Create a new file in `src/commands/<category>/<command>.js`:
+
+```javascript
+import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+
+export default {
+  data: new SlashCommandBuilder()
+    .setName('yourcommand')
+    .setDescription('Description'),
+  
+  // Optional middleware
+  requiredPerms: [PermissionFlagsBits.ManageMessages],
+  cooldownMs: 5000,
+  guildOnly: true,
+  
+  async execute(interaction) {
+    await interaction.reply('Hello!');
+  }
+};
+```
+
+### Adding Components
+
+Register persistent components in `src/components/init.js`:
+
+```javascript
+router.button('namespace:action', {
+  persistent: true,
+  defer: 'update',
+  
+  async execute(interaction, context) {
+    await interaction.update({ content: 'Done!' });
+  }
+});
+```
 
 ---
 
-## 🛠 Troubleshooting
+## Docker Setup
 
-* **`Unknown interaction (10062)`**
-  You didn’t respond/defer in time, or there’s a duplicate listener. Defer early for heavy ops; ensure button handling isn’t duplicated in `interactionCreate`.
-
-* **“Supplying 'ephemeral' is deprecated” warning**
-  You’re hitting a low-level REST path. Switch to `{ flags: 1 << 6 }` or keep using high-level `discord.js` helpers with `ephemeral: true`.
-
-* **No handlers loaded**
-  Check your folder names in `config.js`. Loaders recurse subfolders. If you want startup to fail when no buttons are present, set `FAIL_ON_EMPTY_BUTTONS=true`.
-
-* **ID collisions**
-  Loader throws on duplicate `customId` or `keyword`. For AC, keywords are lowercased; IDs are searched lowercased—be consistent.
-
----
-
-## 🧭 Roadmap
-
-* **AI server bootstrap**
-  Generate channel/category/role layouts, apply templates, and guided setup flows.
-* **Policy guardrails**
-  Allowlist + opt-in prompts to gate AI actions.
-* **Observability**
-  `/stats` expansion, health endpoints, optional Prometheus.
-* **Deployment**
-  Dockerfile, PM2/Systemd examples.
-
----
-
-## 📄 License
-
-MIT (or your choice). Add a `LICENSE` file if you haven’t yet.
-
----
-
-## 🙌 Contributing
-
-* Keep handlers small and declarative.
-* Prefer middleware flags over in-handler checks.
-* Use `createLogger({ mod: '...' })`; avoid `console.*` in production code.
-* Run `npm run register` after command shape changes.
-
----
-
-### One-line install (all used runtime deps)
+The bot uses Docker Compose for PostgreSQL and Redis:
 
 ```bash
-npm i discord.js dotenv p-limit pino pino-pretty aho-corasick
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Reset database
+docker-compose down -v
+docker-compose up -d
 ```
 
-> If you’re using TypeScript later, add `typescript ts-node @types/node` and adjust the scripts.
+The bot itself can run outside Docker (development) or inside (production).
 
 ---
 
+## Health & Monitoring
+
+### Endpoints
+
+The manager process exposes health endpoints on port 3001:
+
+```bash
+# Liveness check
+curl http://localhost:3001/health/live
+
+# Readiness check (all shards ready?)
+curl http://localhost:3001/health/ready
+
+# Deep health check (websocket, db, redis)
+curl http://localhost:3001/health/deep
+
+# Prometheus metrics
+curl http://localhost:3001/metrics
+
+# JSON stats
+curl http://localhost:3001/metrics.json
+```
+
+### Metrics
+
+- `discord_shard_status` - Shard ready state
+- `discord_shard_guilds` - Guilds per shard
+- `discord_shard_ping_ms` - WebSocket latency
+- `discord_commands_executed_total` - Command execution count
+- `discord_command_errors_total` - Command errors
+
+---
+
+## Production Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Use strong `COMPONENT_SECRET` (32+ chars)
+- [ ] Enable SSL for database (`PGSSL=require`)
+- [ ] Configure Redis persistence
+- [ ] Set up log aggregation
+- [ ] Configure automated backups
+- [ ] Set resource limits (memory, CPU)
+- [ ] Enable rate limiting
+- [ ] Set up monitoring (Prometheus/Grafana)
+
+---
+
+## Troubleshooting
+
+### Shards Not Spawning
+```bash
+# Check logs
+tail -f void-bot.log
+
+# Verify token
+node -e "console.log(process.env.VOID_TOKEN ? 'Token set' : 'Missing token')"
+```
+
+### Database Connection Issues
+```bash
+# Test connection
+psql $DATABASE_URL -c "SELECT 1"
+
+# Check Docker
+docker-compose ps
+```
+
+### Components Not Working
+```bash
+# Verify secret is set
+echo $COMPONENT_SECRET
+
+# Clean expired components
+psql $DATABASE_URL -c "SELECT cleanup_expired_components()"
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- Built with [discord.js](https://discord.js.org/)
+- Database: [node-postgres](https://node-postgres.com/)
+- Caching: [ioredis](https://github.com/luin/ioredis)
+- Logging: [pino](https://getpino.io/)
+- Metrics: [prom-client](https://github.com/siimon/prom-client)
+
+---
+
+**Note:** This is a beta release (v1.0.0-beta). Features and APIs may change before the stable 1.0.0 release.
