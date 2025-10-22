@@ -6,6 +6,8 @@ import {
   EmbedBuilder
 } from 'discord.js';
 
+import { colors } from '../../graphics/colors.js';
+
 const MAX_REASON = 512;
 
 /** Clamp + sanitize a reason for audit logs */
@@ -85,12 +87,10 @@ function splitByLimit(text, limit) {
  *  - else => Promise<boolean>
  */
 export async function safeReply(interaction, payload = {}) {
-  // flags are authoritative; accept ephemeral for back-compat then normalize to flags
   const ephFromFlags = hasEphFlag(payload.flags);
   const ephFromBool  = payload.ephemeral === true;
   const wantEph      = ephFromFlags || ephFromBool;
 
-  // Shallow clone arrays; don’t mutate caller
   let body = {
     ...payload,
     embeds: toArray(payload.embeds),
@@ -99,7 +99,7 @@ export async function safeReply(interaction, payload = {}) {
     allowedMentions: payload.allowedMentions ?? { parse: [], users: [], roles: [], repliedUser: false },
   };
 
-  // Normalize color early
+  // If caller tried to pass a raw color, we'll only consider it if we don't have a valid status color
   if (!isValidColor(body.color)) delete body.color;
 
   // Honor explicit single embed
@@ -108,7 +108,25 @@ export async function safeReply(interaction, payload = {}) {
   }
   delete body.embed;
 
-  // Auto-embed only if: content present, no embeds already, and not plain
+  // ----- color resolution helpers -----
+  const pickEmbedColor = () => {
+    // 1) default palette color
+    let chosen = Number.isFinite(colors?.default) ? colors.default : undefined;
+
+    // 2) status → palette (takes precedence over explicit color)
+    const statusKey = typeof body.status === 'string' ? body.status.trim() : null;
+    if (statusKey && Number.isFinite(colors?.[statusKey])) {
+      chosen = colors[statusKey];
+    }
+    // 3) explicit numeric color (fallback for legacy callers)
+    else if (isValidColor(body.color)) {
+      chosen = body.color;
+    }
+
+    // final guard to avoid invalids
+    return isValidColor(chosen) ? chosen : undefined;
+  };
+
   const shouldAutoEmbed =
     typeof body.content === 'string' &&
     body.content.length > 0 &&
@@ -116,17 +134,17 @@ export async function safeReply(interaction, payload = {}) {
     (!body.embeds || body.embeds.length === 0);
 
   if (shouldAutoEmbed) {
-    const LIMITS = REPLY_LIMITS; // assumes your constants module
-    const color = isValidColor(body.color) ? body.color : (STATUS_COLORS[body.status] ?? STATUS_COLORS.default);
-    const desc  = sliceEllipsis(body.content, LIMITS.EMBED_DESC * 10); // allow room before we split
+    const LIMITS = REPLY_LIMITS;
+    const color = pickEmbedColor();
+    const desc  = sliceEllipsis(body.content, LIMITS.EMBED_DESC * 10);
     const title = body.title ? sliceEllipsis(body.title, LIMITS.EMBED_TITLE) : undefined;
 
     const footerText = interaction?.user?.tag ? `Requested by ${interaction.user.tag}` : undefined;
 
-    // Build one or many embeds by splitting description into <=4096 chunks (max 10 embeds)
     const parts = splitByLimit(desc, LIMITS.EMBED_DESC);
     const embeds = parts.map((part, idx) => {
-      const e = new EmbedBuilder().setColor(color).setTimestamp();
+      const e = new EmbedBuilder().setTimestamp();
+      if (isValidColor(color)) e.setColor(color);
       if (idx === 0 && title) e.setTitle(title);
       if (part) e.setDescription(part);
       if (idx === 0 && footerText) {
@@ -140,11 +158,9 @@ export async function safeReply(interaction, payload = {}) {
     delete body.title;
   }
 
-  // Chunk long plain text (only when sending raw content)
   const needsChunking = body.plain && typeof body.content === 'string' && body.content.length > REPLY_LIMITS.PLAIN;
   const chunks = needsChunking ? chunk(body.content, REPLY_LIMITS.PLAIN) : null;
 
-  // Never try to set flags/ephemeral on edit
   const {
     flags: _flagsIgnored,
     ephemeral: _ephIgnored,
@@ -152,15 +168,12 @@ export async function safeReply(interaction, payload = {}) {
     status: _statusIgnored,
     color: _colorIgnored,
     title: _titleIgnored,
-    fetchReply, // keep this
+    fetchReply,
     ...clean
   } = body;
 
-  // Build initial payload with flags (only for reply/followUp — not editReply)
   const withFlags = (p) =>
-    wantEph
-      ? { ...p, flags: (p.flags ?? 0) | MessageFlags.Ephemeral }
-      : p;
+    wantEph ? { ...p, flags: (p.flags ?? 0) | MessageFlags.Ephemeral } : p;
 
   const send = async (method, firstPayload, restChunks) => {
     const initial = await method({ ...withFlags(firstPayload), fetchReply });
@@ -182,7 +195,6 @@ export async function safeReply(interaction, payload = {}) {
     }
 
     if (interaction.deferred && !interaction.replied) {
-      // editReply cannot change flags/ephemeral; fetchReply ignored by discord.js here
       if (needsChunking) {
         const [head, ...tail] = chunks;
         await interaction.editReply({ ...clean, content: head });
@@ -195,7 +207,6 @@ export async function safeReply(interaction, payload = {}) {
       return fetchReply ? null : true;
     }
 
-    // already replied → followUp
     if (needsChunking) {
       for (const part of chunks) {
         await interaction.followUp({ ...withFlags({ content: part, allowedMentions: clean.allowedMentions }) });
@@ -204,7 +215,6 @@ export async function safeReply(interaction, payload = {}) {
     }
     return await send(interaction.followUp.bind(interaction), clean);
   } catch (err) {
-    // 40060: interaction already acknowledged → fallback to followUp
     const code = err?.code ?? err?.rawError?.code;
     if (code === 40060) {
       try {

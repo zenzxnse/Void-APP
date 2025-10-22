@@ -14,6 +14,7 @@ import { enqueue } from "../../core/db/jobs.js";
 import { tx } from "../../core/db/index.js";
 import { logAudit } from "../../utils/moderation/mod-db.js";
 import { createLogger } from "../../core/logger.js";
+import { emojies } from "../../graphics/colors.js";
 
 const log = createLogger({ mod: "lock" });
 
@@ -140,20 +141,27 @@ export default {
       // Send notification BEFORE locking (to ensure it goes through)
       let notificationSent = false;
       if (!channel.isThread()) {
+        const { EmbedBuilder } = await import("discord.js");
+        const embed = new EmbedBuilder()
+          .setColor(0x2c2f33) // dark grey
+          .setTitle(`${emojies.channelLock} Locked ${channel}`)
+          .setDescription(
+        isTemporary
+          ? [
+          `> ${emojies.timeout} **Duration:** ${prettySecs(durationSeconds)}`,
+          `> **Unlocks:** <t:${Math.floor(
+            (Date.now() + durationSeconds * 1000) / 1000
+          )}:F>`,
+          `> ${emojies.questionMark} **Reason:** ${reason}`,
+            ].join("\n")
+          : [
+          `> ${emojies.questionMark} **Reason:** ${reason}`,
+          `> ${emojies.lock} Use \`/unlock\` to manually unlock`,
+            ].join("\n")
+          );
+
         try {
-          await channel.send({
-            content: isTemporary
-              ? `🔒 **Channel locked by ${
-                  interaction.user
-                }**\n⏱️ Duration: ${prettySecs(
-                  durationSeconds
-                )}\n📅 Unlocks: <t:${Math.floor(
-                  (Date.now() + durationSeconds * 1000) / 1000
-                )}:F> (<t:${Math.floor(
-                  (Date.now() + durationSeconds * 1000) / 1000
-                )}:R>)\n📝 Reason: ${reason}`
-              : `🔒 **Channel locked by ${interaction.user}**\n📝 Reason: ${reason}`,
-          });
+          await channel.send({ embeds: [embed] });
           notificationSent = true;
         } catch (err) {
           log.debug({ err }, "Could not send lock notification to channel");
@@ -271,17 +279,17 @@ export default {
       // Response
       const response = isTemporary
         ? [
-            `✅ **Locked ${channel}**`,
-            `⏱️ **Duration:** ${prettySecs(durationSeconds)}`,
-            `📅 **Unlocks:** <t:${Math.floor(
+            `${emojies.channelLock} **Locked ${channel}**`,
+            `> ${emojies.timeout} **Duration:** ${prettySecs(durationSeconds)}`,
+            `> **Unlocks:** <t:${Math.floor(
               (Date.now() + durationSeconds * 1000) / 1000
             )}:F>`,
-            `📝 **Reason:** ${reason}`,
+            `> ${emojies.questionMark} **Reason:** ${reason}`,
           ].join("\n")
         : [
-            `✅ **Locked ${channel}**`,
-            `📝 **Reason:** ${reason}`,
-            `💡 Use \`/unlock\` to manually unlock`,
+            `${emojies.channelLock} **Locked ${channel}**`,
+            `> ${emojies.questionMark} **Reason:** ${reason}`,
+            `> ${emojies.lock} Use \`/unlock\` to manually unlock`,
           ].join("\n");
 
       return safeReply(interaction, {
@@ -291,7 +299,7 @@ export default {
     } catch (err) {
       log.error({ err, channelId: channel.id }, "Failed to lock channel");
       return safeReply(interaction, {
-        content: "❌ Failed to lock channel. Please check my permissions.",
+        content: `${emojies.error} Failed to lock channel. Please check my permissions.`,
         flags: MessageFlags.Ephemeral,
       });
     }

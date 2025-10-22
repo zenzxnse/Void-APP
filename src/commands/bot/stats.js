@@ -10,6 +10,35 @@ import { safeReply } from '../../utils/moderation/mod.js';
 import { getDbStats } from '../../core/db/index.js';
 import { getJobStats } from '../../core/db/jobs.js';
 
+// ---- owner check (mirrors middleware’s behavior) ----
+const OWNER_IDS = new Set(
+  (process.env.OWNER_IDS ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+);
+
+async function isOwner(interaction) {
+  if (OWNER_IDS.size) return OWNER_IDS.has(interaction.user.id);
+
+  try {
+    await interaction.client.application?.fetch();
+  } catch {
+    return false;
+  }
+  const owner = interaction.client.application?.owner;
+  if (!owner) return false;
+
+  if (owner.id) return owner.id === interaction.user.id; // single-owner app
+  if (owner.members) {
+    for (const tm of owner.members.values()) {
+      if (tm.id === interaction.user.id) return true;    // team member
+    }
+  }
+  return false;
+}
+
+// ---- small helpers ----
 const pad = (n) => String(n).padStart(2, '0');
 function formatUptime(seconds) {
   const d = Math.floor(seconds / 86400);
@@ -23,7 +52,6 @@ function formatUptime(seconds) {
   parts.push(`${s}s`);
   return parts.join(' ');
 }
-
 const MB = 1024 * 1024;
 const toMB = (b) => (b / MB).toFixed(1);
 
@@ -47,12 +75,16 @@ async function sampleEventLoopLag(ms = 150) {
 export default {
   data: new SlashCommandBuilder()
     .setName('stats')
-    .setDescription('Detailed bot/system metrics for nerds.'),
-  ownerOnly: true,
+    .setDescription('Detailed bot/system metrics. Owners see full details.'),
+
+  // not ownerOnly anymore — non-owners get a redacted view
+  ownerOnly: false,
   dmPermission: false,
 
   async execute(interaction) {
     const { client } = interaction;
+
+    const userIsOwner = await isOwner(interaction).catch(() => false);
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -79,34 +111,48 @@ export default {
     // Component router (if present)
     const compStats = client.components?.getDetailedStats?.() ?? null;
 
-    // ---- DB + jobs (best-effort)
+    // ---- DB + jobs (best-effort; only for owners)
     let db = null, jobs = null;
-    try { db = await getDbStats(); } catch {}
-    try { jobs = await getJobStats(); } catch {}
+    if (userIsOwner) {
+      try { db = await getDbStats(); } catch {}
+      try { jobs = await getJobStats(); } catch {}
+    }
 
-    // ---- build embed
-    const topCommands = formatMapEntries(commandExecs, 8);
-    const topComponents = compStats ? Object.entries(compStats.executions)
-      .sort((a, b) => b[1] - a[1]).slice(0, 8)
-      .map(([k, v], i) => `\`${pad(i + 1)}\` • **${k}** — ${v}`).join('\n') : '`—`';
+    // ---- build fields
+    const topCommands = userIsOwner
+      ? formatMapEntries(commandExecs, 8)
+      : '`—`';
 
-    const denialInfo = [
-      `Cooldown: \`${denies.cooldown ?? 0}\``,
-      `User Perms: \`${denies.perms ?? 0}\``,
-      `Owner Only: \`${denies.owner ?? 0}\``,
-      `Guild Only: \`${denies.guildOnly ?? 0}\``,
-      `DM Blocked: \`${denies.dmBlocked ?? 0}\``,
-    ].join('\n');
+    const topComponents = userIsOwner && compStats
+      ? Object.entries(compStats.executions)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([k, v], i) => `\`${pad(i + 1)}\` • **${k}** — ${v}`)
+          .join('\n')
+      : '`—`';
 
-    const handlerInfo = [
-      `Commands: \`${loaded.commands ?? 0}\``,
-      `Events: \`${loaded.events ?? 0}\``,
-      `Buttons: \`${loaded.buttons ?? 0}\``,
-      `Selects: \`${loaded.selects ?? 0}\``,
-      `Modals: \`${loaded.modals ?? 0}\``,
-    ].join('\n');
+    const denialInfo = userIsOwner
+      ? [
+          `Cooldown: \`${denies.cooldown ?? 0}\``,
+          `User Perms: \`${denies.perms ?? 0}\``,
+          `Owner Only: \`${denies.owner ?? 0}\``,
+          `Guild Only: \`${denies.guildOnly ?? 0}\``,
+          `DM Blocked: \`${denies.dmBlocked ?? 0}\``,
+        ].join('\n')
+      : '`—`';
 
-    const sysInfo = [
+    const handlerInfo = userIsOwner
+      ? [
+          `Commands: \`${loaded.commands ?? 0}\``,
+          `Events: \`${loaded.events ?? 0}\``,
+          `Buttons: \`${loaded.buttons ?? 0}\``,
+          `Selects: \`${loaded.selects ?? 0}\``,
+          `Modals: \`${loaded.modals ?? 0}\``,
+        ].join('\n')
+      : '`—`';
+
+    // Public (non-owner) system info is intentionally minimal
+    const sysInfoOwner = [
       `CPU: \`${cpu?.model?.split('@')[0].trim() || 'Unknown'}\``,
       `Cores: \`${os.cpus()?.length ?? '?'}\``,
       `Load: \`${load.map(n => n.toFixed(2)).join(' / ')}\``,
@@ -119,34 +165,41 @@ export default {
       `Platform: \`${os.platform()} ${os.release()}\``,
     ].join('\n');
 
-    const dbInfo = db ? [
+    const sysInfoPublic = [
+      `EL Lag: \`${lagMs}ms\``,
+      `Node: \`${process.version}\``,
+      `d.js: \`${djsVersion}\``,
+    ].join('\n');
+
+    const dbInfo = userIsOwner && db ? [
       `Pool: ${db.poolInitialized ? '🟢' : '🔴'}`,
       `Conns: \`${db.totalConnections ?? 0}\` (idle: \`${db.idleConnections ?? 0}\`, wait: \`${db.waitingRequests ?? 0}\`)`,
       `Queries: \`${db.totalQueries ?? 0}\`, Slow: \`${db.slowQueries ?? 0}\`, Errors: \`${db.totalErrors ?? 0}\``,
-    ].join('\n') : '`— (no pool)`';
+    ].join('\n') : '`—`';
 
-    const jobInfo = jobs ? [
+    const jobInfo = userIsOwner && jobs ? [
       `Pending: \`${jobs.pending ?? 0}\`  |  Proc: \`${jobs.processing ?? 0}\``,
       `Retrying: \`${jobs.retrying ?? 0}\`  |  Failed: \`${jobs.failed ?? 0}\``,
       `Total: \`${jobs.total ?? 0}\``,
       ...(typeof s.jobsProcessed === 'number' || typeof s.jobsFailed === 'number'
         ? [`Run: \`${s.jobsProcessed ?? 0}\` ok / \`${s.jobsFailed ?? 0}\` fail`]
         : []),
-    ].join('\n') : '`— (n/a)`';
+    ].join('\n') : '`—`';
 
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
       .setTitle('Void — System & Bot Statistics')
       .setDescription(
-        `**Uptime** \`${uptime}\` • **Ping** \`${ping}ms\` • **Guilds** \`${guilds}\` • **Shard** \`${shard}\``
+        `**Uptime** \`${uptime}\` • **Ping** \`${ping}ms\` • **Guilds** \`${guilds}\` • **Shard** \`${shard}\`` +
+        (userIsOwner ? '' : '\n> Limited view — owner only sees full details.')
       )
       .addFields(
-        { name: 'System', value: sysInfo, inline: true },
+        { name: 'System', value: userIsOwner ? sysInfoOwner : sysInfoPublic, inline: true },
         { name: 'Handlers Loaded', value: handlerInfo, inline: true },
         { name: 'Middleware Denials', value: denialInfo, inline: true },
         { name: 'Top Commands', value: topCommands, inline: true },
         { name: 'Components — Top Execs', value: topComponents, inline: true },
-        ...(compStats ? [{
+        ...(userIsOwner && compStats ? [{
           name: 'Components — Router Stats',
           value: [
             `Handlers: \`${Object.entries(compStats.handlers).reduce((a, [,n]) => a + n, 0)}\``,
@@ -159,7 +212,7 @@ export default {
         { name: 'Job Queue', value: jobInfo, inline: true },
       )
       .setTimestamp()
-      .setFooter({ text: `Node ${process.version}` });
+      .setFooter({ text: `Node ${process.version}${userIsOwner ? '' : ' • redacted'}` });
 
     return safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
   },

@@ -8,6 +8,7 @@ import {
   safeReply, emitModLog, humanizeError,
 } from '../../utils/moderation/mod.js';
 import { parseDurationSeconds } from '../../utils/moderation/duration.js';
+import { emojies } from '../../graphics/colors.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -57,8 +58,11 @@ export default {
       ts: Date.now(),
     });
 
+    const response = `${emojies.modAction} Timed out **${member.user.tag}**\n> ${emojies.timeout} for **${durationRaw}** — lifts ${untilTs(ms)}.\n> ${reason ? ` Reason: ${reason}` : 'Reason: NULL'}`;
+    // `✅ Timed out **${member.user.tag}** for **${durationRaw}** — lifts ${untilTs(ms)}.${reason ? ` Reason: ${reason}` : ''}`,
+
     return safeReply(interaction, {
-      content: `✅ Timed out **${member.user.tag}** for **${durationRaw}** — lifts ${untilTs(ms)}.${reason ? ` Reason: ${reason}` : ''}`,
+      content: response,
       flags: MessageFlags.Ephemeral,
     });
   },

@@ -1,7 +1,7 @@
 /**
  * @file ComponentRouter.js
  * @module components/ComponentRouter
- * @description Production-ready Discord.js component interaction router with security,
+ * @description Discord.js component interaction router with security,
  * persistence, and middleware integration. Handles buttons, select menus, and modals
  * with cryptographic signature verification, anti-replay protection, and automatic
  * guild config caching.

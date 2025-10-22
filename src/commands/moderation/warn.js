@@ -2,8 +2,8 @@ import {
   SlashCommandBuilder, PermissionFlagsBits, MessageFlags,
 } from 'discord.js';
 import {
-  ensureInGuild, normalizeReason, checkHierarchy,
-  safeReply, emitModLog, humanizeError,
+  ensureInGuild, normalizeReason,
+  safeReply, emitModLog,
 } from '../../utils/moderation/mod.js';
 import {
   createInfractionWithCount, getAutoAction, getGuildConfig, logAudit,
@@ -11,6 +11,7 @@ import {
 import { parseDurationSeconds, prettySecs } from '../../utils/moderation/duration.js';
 import { applyModAction } from '../../utils/moderation/mod-actions.js';
 import { tx } from '../../core/db/index.js';
+import { emojies } from '../../graphics/colors.js';
 
 // Rate limiting map: `${guildId}:${modId}:${targetId}` -> timestamp
 const warnRateLimit = new Map();
@@ -24,12 +25,17 @@ export default {
     .addStringOption(o => o.setName('reason').setDescription('Reason for the warn').setMaxLength(1024))
     .addStringOption(o => o.setName('duration').setDescription('How long this warn stays active (e.g. 7d, 12h, 45m)'))
     .addBooleanOption(o => o.setName('silent').setDescription('Do not DM the user'))
+    .addBooleanOption(o => o.setName('ephemeral').setDescription('Respond privately (ephemeral)'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .setDMPermission(false),
 
   async execute(interaction) {
     ensureInGuild(interaction);
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const eph = interaction.options.getBoolean('ephemeral') ?? false;
+    const ephFlag = eph ? MessageFlags.Ephemeral : 0;
+
+    await interaction.deferReply({ flags: ephFlag });
 
     const targetUser = interaction.options.getUser('user', true);
     const reason = normalizeReason(interaction.options.getString('reason'));
@@ -38,60 +44,45 @@ export default {
 
     // Validate duration if provided
     let durationSeconds = null;
-
     if (durationStr) {
-        const seconds = parseDurationSeconds(durationStr);
-        if (!Number.isFinite(seconds) || seconds <= 0) {
-          return safeReply(interaction, { content: '❌ Invalid duration.', flags: MessageFlags.Ephemeral });
-        }
-        const MAX_WARN_DURATION_SECONDS = 90 * 24 * 60 * 60; // 90 days
-        if (seconds > MAX_WARN_DURATION_SECONDS) {
-          return safeReply(interaction, { content: '❌ Duration cannot exceed 90 days.', flags: MessageFlags.Ephemeral });
-        }
-        durationSeconds = seconds; // <- stay in seconds
+      const seconds = parseDurationSeconds(durationStr);
+      if (!Number.isFinite(seconds) || seconds <= 0) {
+        return safeReply(interaction, { content: '❌ Invalid duration.', flags: ephFlag });
+      }
+      const MAX_WARN_DURATION_SECONDS = 90 * 24 * 60 * 60; // 90 days
+      if (seconds > MAX_WARN_DURATION_SECONDS) {
+        return safeReply(interaction, { content: '❌ Duration cannot exceed 90 days.', flags: ephFlag });
+      }
+      durationSeconds = seconds; // stay in seconds
     }
 
-
-    // Fetch target member
+    // Fetch target member (must be in guild to receive a guild warn)
     const target = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
     if (!target) {
-      return safeReply(interaction, { 
-        content: '❌ That user is not in this server.', 
-        flags: MessageFlags.Ephemeral 
+      return safeReply(interaction, {
+        content: '❌ That user is not in this server.',
+        flags: ephFlag,
       });
     }
 
-    // Check hierarchy
-    const hier = checkHierarchy({ 
-      guild: interaction.guild, 
-      me: interaction.guild.members.me, 
-      actor: interaction.member, 
-      target 
-    });
-    if (!hier.ok) {
-      return safeReply(interaction, { 
-        content: humanizeError(hier.why), 
-        flags: MessageFlags.Ephemeral 
-      });
-    }
+    // ❗ No hierarchy checks — moderators can warn anyone, including owner.
 
     // Rate limiting check
     const rateLimitKey = `${interaction.guildId}:${interaction.user.id}:${target.id}`;
     const lastWarn = warnRateLimit.get(rateLimitKey);
     const now = Date.now();
-    
+
     if (lastWarn && now - lastWarn < RATE_LIMIT_MS) {
       const remaining = Math.ceil((RATE_LIMIT_MS - (now - lastWarn)) / 1000);
       return safeReply(interaction, {
         content: `⏳ Please wait ${remaining} seconds before warning this user again.`,
-        flags: MessageFlags.Ephemeral
+        flags: ephFlag,
       });
     }
 
     try {
       // Use transaction for atomic warn creation and count
       const result = await tx(async (client) => {
-        // Create infraction and get count atomically
         const infraction = await createInfractionWithCount({
           client,
           guildId: interaction.guildId,
@@ -102,28 +93,24 @@ export default {
           durationSeconds,
         });
 
-        // Check for auto-action
         const autoAction = await getAutoAction(interaction.guildId, infraction.warnCount);
-        
         return { infraction, autoAction };
       });
 
       const { infraction, autoAction } = result;
       warnRateLimit.set(rateLimitKey, now);
 
-      // Clean up old rate limit entries periodically
+      // Clean stale rate-limit entries occasionally
       if (warnRateLimit.size > 100) {
-        for (const [key, time] of warnRateLimit) {
-          if (now - time > RATE_LIMIT_MS * 2) {
-            warnRateLimit.delete(key);
-          }
+        for (const [key, ts] of warnRateLimit) {
+          if (now - ts > RATE_LIMIT_MS * 2) warnRateLimit.delete(key);
         }
       }
 
-      // Handle auto-action if configured
+      // Optional auto-action (may fail due to perms/hierarchy; warn still stands)
       let autoMsg = '';
       let autoInfraction = null;
-      
+
       if (autoAction && autoAction.action !== 'none') {
         try {
           const { applied, infraction: autoInf, msg } = await applyModAction({
@@ -136,15 +123,11 @@ export default {
             context: { fromWarnId: infraction.id },
             isAuto: true,
           });
-          
+
           if (applied) {
-            const duration = autoAction.duration_seconds 
-              ? ` for ${prettySecs(autoAction.duration_seconds)}` 
-              : '';
+            const duration = autoAction.duration_seconds ? ` for ${prettySecs(autoAction.duration_seconds)}` : '';
             autoMsg = `\n🔨 **Auto-action triggered:** ${autoAction.action}${duration}`;
             autoInfraction = autoInf;
-            
-            // Update warn with replacement
             if (autoInf) {
               await tx(async (client) => {
                 await client.query(
@@ -154,7 +137,7 @@ export default {
               });
             }
           } else {
-            autoMsg = `\n⚠️ Auto-action failed: ${msg}`;
+            autoMsg = `\n⚠️ Auto-action failed: ${msg || 'insufficient permissions or role hierarchy'}`;
           }
         } catch (err) {
           console.error('Auto-action error:', err);
@@ -165,11 +148,12 @@ export default {
       // Try to DM the user
       const { dm_on_action: dmOnAction } = await getGuildConfig(interaction.guildId, 'dm_on_action');
       let dmFailed = false;
-      
+
       if (!silent && dmOnAction) {
         try {
           await target.send({
-            content: `⚠️ **You received a warning in ${interaction.guild.name}**\n` +
+            content:
+              `⚠️ **You received a warning in ${interaction.guild.name}**\n` +
               `${reason ? `📝 **Reason:** ${reason}\n` : ''}` +
               `📋 **Case ID:** \`${infraction.id}\`\n` +
               `⚠️ **Total warnings:** ${infraction.warnCount}` +
@@ -182,16 +166,12 @@ export default {
             actionType: 'dm_failed',
             actorId: interaction.user.id,
             targetId: target.id,
-            details: { 
-              action: 'warn', 
-              error: err.message,
-              caseId: infraction.id 
-            },
+            details: { action: 'warn', error: err.message, caseId: infraction.id },
           });
         }
       }
 
-      // Log to mod log
+      // Mod log
       await emitModLog(interaction, {
         action: 'warn',
         guildId: interaction.guildId,
@@ -211,10 +191,10 @@ export default {
         actionType: 'warn',
         actorId: interaction.user.id,
         targetId: target.id,
-        details: { 
-          reason, 
-          caseId: infraction.id, 
-          autoAction: autoAction?.action, 
+        details: {
+          reason,
+          caseId: infraction.id,
+          autoAction: autoAction?.action,
           warnCount: infraction.warnCount,
           dmFailed,
         },
@@ -222,25 +202,25 @@ export default {
 
       // Build response
       const response = [
-        `✅ **Warned ${target.user.tag}**`,
-        `📋 **Case ID:** \`${infraction.id}\``,
-        `⚠️ **Total warnings:** ${infraction.warnCount}`,
-        reason ? `📝 **Reason:** ${reason}` : null,
-        durationSeconds ? `⏱️ **Duration:** ${prettySecs(durationSeconds)}` : null,
+        `${emojies.modAction} **Warned ${target.user.tag}**`,
+        `> **Case ID:** \`${infraction.id}\``,
+        `> **Total warnings:** ${infraction.warnCount}`,
+        reason ? `> **Reason:** ${reason}` : null,
+        durationSeconds ? `${emojies.timeout} **Duration:** ${prettySecs(durationSeconds)}` : null,
         autoMsg || null,
-        dmFailed ? '⚠️ *Could not DM user*' : null,
+        dmFailed ? `${emojies.voidEye} *Could not DM user*` : null,
       ].filter(Boolean).join('\n');
 
       return safeReply(interaction, {
         content: response,
-        flags: MessageFlags.Ephemeral,
+        flags: ephFlag,
       });
-      
+
     } catch (err) {
       console.error('Warn command error:', err);
       return safeReply(interaction, {
-        content: '❌ Failed to issue warning. Please try again or contact an administrator.',
-        flags: MessageFlags.Ephemeral
+        content: `${emojies.error} Failed to issue warning. Please try again or contact an administrator.`,
+        flags: ephFlag,
       });
     }
   },

@@ -16,7 +16,7 @@ export default {
 
   async execute(interaction) {
     ensureInGuild(interaction);
-    const ephemeral = interaction.options.getBoolean('ephemeral') ?? true;
+    const ephemeral = interaction.options.getBoolean('ephemeral') ?? false;
     const limit = interaction.options.getInteger('limit') ?? 25;
     
     await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : undefined);

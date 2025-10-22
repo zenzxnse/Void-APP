@@ -216,46 +216,7 @@ Void Bot is a feature-rich Discord moderation bot built with Discord.js v14, fea
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  ShardingManager (void.js)                   │
-│          Process Manager & Health Server (:3001)             │
-│                                                              │
-│  Features:                                                   │
-│  • Automatic shard count calculation                         │
-│  • Health monitoring & metrics collection                    │
-│  • IPC message routing                                       │
-│  • Graceful shutdown handling                                │
-│  • Prometheus metrics export                                 │
-└────────────┬────────────────────────────────────────────────┘
-             │ Spawns & Monitors
-             │
-             ├──────────────┬──────────────┬──────────────┬────────────
-             ▼              ▼              ▼              ▼
-        ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
-        │ Shard 0 │   │ Shard 1 │   │ Shard 2 │   │ Shard N │
-        │         │   │         │   │         │   │         │
-        │ Events  │   │ Events  │   │ Events  │   │ Events  │
-        │ Commands│   │ Commands│   │ Commands│   │ Commands│
-        │ Jobs    │   │ Jobs    │   │ Jobs    │   │ Jobs    │
-        │ AutoMod │   │ AutoMod │   │ AutoMod │   │ AutoMod │
-        └────┬────┘   └────┬────┘   └────┬────┘   └────┬────┘
-             │             │             │             │
-             └─────────────┴─────────────┴─────────────┘
-                           │
-                ┌──────────┴──────────┐
-                ▼                     ▼
-         ┌─────────────┐       ┌──────────┐
-         │ PostgreSQL  │       │  Redis   │
-         │   (Docker)  │       │ (Docker) │
-         │             │       │          │
-         │ • Infractions      │ • Guild Configs    │
-         │ • Guild Config     │ • AutoMod State    │
-         │ • Scheduled Jobs   │ • Rate Limits      │
-         │ • Audit Logs       │ • Component Cache  │
-         │ • User Notes       │ • Session Data     │
-         └─────────────┘       └──────────┘
-```
+![Banner](src/graphics/architecture.png)
 
 ### Data Flow
 

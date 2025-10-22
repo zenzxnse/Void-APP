@@ -2,7 +2,7 @@
 import {
   Events
 } from 'discord.js';
-import { Automod } from '../utils/automod/AutoMod.js';
+import { Automod } from '../utils/automod/autoMod.js';
 import { createLogger } from '../core/logger.js';
 
 const log = createLogger({ mod: 'automod:processor' });
