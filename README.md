@@ -53,7 +53,6 @@ Void Bot is a feature-rich Discord moderation bot built with Discord.js v14, fea
 - [Docker Setup](#docker-setup)
 - [Development](#development)
 - [Health & Monitoring](#health--monitoring)
-- [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
 - [Production Deployment](#production-deployment)
 - [Contributing](#contributing)
