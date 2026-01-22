@@ -247,8 +247,9 @@ npm install
 
 # 3. Start Docker services (PostgreSQL & Redis)
 docker-compose up -d
+docker run --name void-redis -p 6379:6379 -d redis:7-alpine
 
-# 4. Wait for database to be ready
+# 4. Wait for database to be ready (not needed)
 docker-compose logs -f db
 # Wait for "database system is ready to accept connections"
 
