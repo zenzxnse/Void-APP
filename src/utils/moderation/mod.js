@@ -81,25 +81,40 @@ function splitByLimit(text, limit) {
 }
 
 /**
- * reply helper for interactions.
- * Returns:
- *  - if payload.fetchReply === true => Promise<Message|null>
- *  - else => Promise<boolean>
+ * Safe reply helper for interactions.
+ *
+ * - Respects ephemeral via flags or payload.ephemeral === true
+ * - Auto-wraps content into embeds unless payload.plain === true
+ * - Chunks long plain messages
+ * - Handles reply / editReply / followUp correctly
+ * - Gracefully falls back on interaction 40060 errors
+ *
+ * @param {import('discord.js').Interaction} interaction
+ * @param {Object} payload
+ * @returns {Promise<boolean>} true on best-effort success, false on hard failure
  */
 export async function safeReply(interaction, payload = {}) {
+  // ----- ephemeral resolution (flags only go to Discord) -----
   const ephFromFlags = hasEphFlag(payload.flags);
-  const ephFromBool  = payload.ephemeral === true;
-  const wantEph      = ephFromFlags || ephFromBool;
+  const ephFromBool = payload.ephemeral === true;
+  const wantEph = ephFromFlags || ephFromBool;
 
+  // ----- normalize arrays & allowedMentions -----
   let body = {
     ...payload,
     embeds: toArray(payload.embeds),
     components: toArray(payload.components),
     files: toArray(payload.files),
-    allowedMentions: payload.allowedMentions ?? { parse: [], users: [], roles: [], repliedUser: false },
+    allowedMentions:
+      payload.allowedMentions ?? {
+        parse: [],
+        users: [],
+        roles: [],
+        repliedUser: false,
+      },
   };
 
-  // If caller tried to pass a raw color, we'll only consider it if we don't have a valid status color
+  // Reject raw color if invalid
   if (!isValidColor(body.color)) delete body.color;
 
   // Honor explicit single embed
@@ -114,21 +129,22 @@ export async function safeReply(interaction, payload = {}) {
     let chosen = Number.isFinite(colors?.default) ? colors.default : undefined;
 
     // 2) status → palette (takes precedence over explicit color)
-    const statusKey = typeof body.status === 'string' ? body.status.trim() : null;
+    const statusKey =
+      typeof body.status === "string" ? body.status.trim() : null;
     if (statusKey && Number.isFinite(colors?.[statusKey])) {
       chosen = colors[statusKey];
     }
-    // 3) explicit numeric color (fallback for legacy callers)
+    // 3) explicit numeric color (fallback)
     else if (isValidColor(body.color)) {
       chosen = body.color;
     }
 
-    // final guard to avoid invalids
     return isValidColor(chosen) ? chosen : undefined;
   };
 
+  // ----- auto-embed for non-plain content -----
   const shouldAutoEmbed =
-    typeof body.content === 'string' &&
+    typeof body.content === "string" &&
     body.content.length > 0 &&
     !body.plain &&
     (!body.embeds || body.embeds.length === 0);
@@ -136,19 +152,27 @@ export async function safeReply(interaction, payload = {}) {
   if (shouldAutoEmbed) {
     const LIMITS = REPLY_LIMITS;
     const color = pickEmbedColor();
-    const desc  = sliceEllipsis(body.content, LIMITS.EMBED_DESC * 10);
-    const title = body.title ? sliceEllipsis(body.title, LIMITS.EMBED_TITLE) : undefined;
+    const desc = sliceEllipsis(body.content, LIMITS.EMBED_DESC * 10);
+    const title = body.title
+      ? sliceEllipsis(body.title, LIMITS.EMBED_TITLE)
+      : undefined;
 
-    const footerText = interaction?.user?.tag ? `Requested by ${interaction.user.tag}` : undefined;
+    const footerText = interaction?.user?.tag
+      ? `Requested by ${interaction.user.tag}`
+      : undefined;
 
     const parts = splitByLimit(desc, LIMITS.EMBED_DESC);
+
     const embeds = parts.map((part, idx) => {
       const e = new EmbedBuilder().setTimestamp();
       if (isValidColor(color)) e.setColor(color);
       if (idx === 0 && title) e.setTitle(title);
       if (part) e.setDescription(part);
       if (idx === 0 && footerText) {
-        e.setFooter({ text: footerText, iconURL: interaction?.user?.displayAvatarURL?.() });
+        e.setFooter({
+          text: footerText,
+          iconURL: interaction?.user?.displayAvatarURL?.(),
+        });
       }
       return e;
     });
@@ -158,9 +182,14 @@ export async function safeReply(interaction, payload = {}) {
     delete body.title;
   }
 
-  const needsChunking = body.plain && typeof body.content === 'string' && body.content.length > REPLY_LIMITS.PLAIN;
+  // ----- plain content chunking -----
+  const needsChunking =
+    body.plain &&
+    typeof body.content === "string" &&
+    body.content.length > REPLY_LIMITS.PLAIN;
   const chunks = needsChunking ? chunk(body.content, REPLY_LIMITS.PLAIN) : null;
 
+  // Strip fields that should not go to Discord
   const {
     flags: _flagsIgnored,
     ephemeral: _ephIgnored,
@@ -168,71 +197,108 @@ export async function safeReply(interaction, payload = {}) {
     status: _statusIgnored,
     color: _colorIgnored,
     title: _titleIgnored,
-    fetchReply,
     ...clean
   } = body;
 
   const withFlags = (p) =>
-    wantEph ? { ...p, flags: (p.flags ?? 0) | MessageFlags.Ephemeral } : p;
+    wantEph
+      ? { ...p, flags: (p.flags ?? 0) | MessageFlags.Ephemeral }
+      : p;
 
   const send = async (method, firstPayload, restChunks) => {
-    const initial = await method({ ...withFlags(firstPayload), fetchReply });
+    // Initial send (reply or followUp)
+    await method(withFlags(firstPayload));
+
+    // Extra chunks (plain only)
     if (needsChunking && restChunks?.length) {
       for (const part of restChunks) {
-        await interaction.followUp({ ...withFlags({ content: part, allowedMentions: clean.allowedMentions }), fetchReply: false });
+        await interaction.followUp(
+          withFlags({
+            content: part,
+            allowedMentions: clean.allowedMentions,
+          }),
+        );
       }
     }
-    return fetchReply ? (initial ?? null) : true;
+    return true;
   };
 
   try {
+    // Not yet acknowledged
     if (!interaction.deferred && !interaction.replied) {
       if (needsChunking) {
         const [head, ...tail] = chunks;
-        return await send(interaction.reply.bind(interaction), { ...clean, content: head }, tail);
+        return await send(
+          interaction.reply.bind(interaction),
+          { ...clean, content: head },
+          tail,
+        );
       }
       return await send(interaction.reply.bind(interaction), clean);
     }
 
+    // Deferred, not replied yet → editReply as main response
     if (interaction.deferred && !interaction.replied) {
       if (needsChunking) {
         const [head, ...tail] = chunks;
         await interaction.editReply({ ...clean, content: head });
         for (const part of tail) {
-          await interaction.followUp({ ...withFlags({ content: part, allowedMentions: clean.allowedMentions }) });
+          await interaction.followUp(
+            withFlags({
+              content: part,
+              allowedMentions: clean.allowedMentions,
+            }),
+          );
         }
-        return fetchReply ? null : true;
+        return true;
       }
       await interaction.editReply(clean);
-      return fetchReply ? null : true;
+      return true;
     }
 
+    // Already replied → followUps only
     if (needsChunking) {
       for (const part of chunks) {
-        await interaction.followUp({ ...withFlags({ content: part, allowedMentions: clean.allowedMentions }) });
+        await interaction.followUp(
+          withFlags({
+            content: part,
+            allowedMentions: clean.allowedMentions,
+          }),
+        );
       }
-      return fetchReply ? null : true;
+      return true;
     }
+
     return await send(interaction.followUp.bind(interaction), clean);
   } catch (err) {
     const code = err?.code ?? err?.rawError?.code;
+
+    // 40060: "Interaction has already been acknowledged" → fallback to followUp
     if (code === 40060) {
       try {
         if (needsChunking) {
-          for (const part of (chunks ?? [])) {
-            await interaction.followUp({ ...withFlags({ content: part, allowedMentions: clean.allowedMentions }) });
+          for (const part of chunks ?? []) {
+            await interaction.followUp(
+              withFlags({
+                content: part,
+                allowedMentions: clean.allowedMentions,
+              }),
+            );
           }
-          return fetchReply ? null : true;
+          return true;
         }
-        const msg = await interaction.followUp({ ...withFlags(clean), fetchReply });
-        return fetchReply ? (msg ?? null) : true;
+
+        await interaction.followUp(withFlags(clean));
+        return true;
       } catch {
-        return fetchReply ? null : false;
+        return false;
       }
     }
-    return fetchReply ? null : false;
+
+    return false;
   }
 }
+
 
 
 function chunk(str, size) {

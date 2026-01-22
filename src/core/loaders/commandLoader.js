@@ -1,11 +1,3 @@
-// src/loaders/commandLoader.js
-// Production-grade loader for slash commands.
-// Features:
-// - Consistent logging with a dedicated child logger.
-// - Telemetry integration as the single source of truth for loaded command counts.
-// - Safe, recursive directory traversal with concurrent file imports.
-// - Robust validation for command module structure.
-
 import { Collection } from 'discord.js';
 import { readdir } from 'node:fs/promises';
 import { extname } from 'node:path';

@@ -7,7 +7,6 @@
 -- 0) Extensions
 CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pg_trgm;    -- Trigram searches
--- Removed btree_gin (not used)
 
 -- 1) Dedicated schema
 CREATE SCHEMA IF NOT EXISTS void;

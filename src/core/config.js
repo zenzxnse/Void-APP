@@ -5,9 +5,9 @@ export default {
   BUTTONS_FOLDER: "buttons",
   GLOBAL: false, // false = guild-only (for testing)
   AI_ALLOWED_LIST: ["747400496402268243"],
-  NODE_ENV: "development", // 'production' or 'development'
+  NODE_ENV: "developement", // 'production' or 'development'
   GUILD_IDS: [
-    "1411475284452053084"
+    "1411475284452053084", "1295478833830695033"
   ],
   LOG_LEVEL: "info",
   LOG_REDACT: "token,authorization,headers.authorization,env.VOID_TOKEN",

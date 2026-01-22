@@ -93,42 +93,42 @@ export async function createInfractionWithCount({
  * @param {Object} params
  * @returns {Promise<Object|null>} The revoked infraction or null
  */
-export async function revokeWarn({ 
-  guildId, 
-  userId, 
-  caseId, 
-  revokerId, 
-  revokeReason = null 
+export async function revokeWarn({
+  guildId,
+  userId,
+  caseId,
+  revokerId,
+  revokeReason = null,
 }) {
   const queryText = `
     UPDATE infractions
-    SET 
+    SET
       active = FALSE,
       revoked_at = NOW(),
       revoker_id = $4,
-      reason = CASE 
-        WHEN $5 IS NOT NULL THEN 
-          CASE 
-            WHEN reason IS NULL THEN $5
-            ELSE reason || ' | Revoke note: ' || $5
-          END
-        ELSE reason
+      reason = CASE
+        WHEN ($5)::text IS NULL THEN reason
+        ELSE CONCAT_WS(' | Revoke note: ', NULLIF(reason, ''), ($5)::text)
       END
-    WHERE id = $1
-      AND guild_id = $2
-      AND user_id = $3
+    WHERE id = $1::uuid
+      AND guild_id = $2::text
+      AND user_id = $3::text
       AND type = 'warn'
       AND active = TRUE
-    RETURNING *
+    RETURNING *;
   `;
 
-  const { rows: [revoked] } = await query(
-    queryText,
-    [caseId, guildId, userId, revokerId, revokeReason]
-  );
+  const { rows: [revoked] } = await query(queryText, [
+    caseId,
+    guildId,
+    userId,
+    revokerId,
+    revokeReason,     // may be null; the ::text cast above handles it
+  ]);
 
   return revoked || null;
 }
+
 
 /**
  * Get active warn count with decay support.
@@ -376,6 +376,58 @@ export async function logAudit({ guildId, actionType, actorId, targetId, details
   }
 }
 
+/**
+ * Clear all active (non-expired, within decay window) warns for a user.
+ * @param {Object} params
+ * @returns {Promise<Array>} List of revoked infractions
+ */
+export async function clearUserWarns({
+  guildId,
+  userId,
+  revokerId,
+  clearReason = null,
+}) {
+  const sql = `
+    WITH config AS (
+      SELECT COALESCE(warn_decay_days, 30) AS decay_days
+      FROM guild_config
+      WHERE guild_id = $1
+    ),
+    affected AS (
+      SELECT i.id
+      FROM infractions i, config c
+      WHERE i.guild_id = $1
+        AND i.user_id  = $2
+        AND i.type     = 'warn'
+        AND i.active   = TRUE
+        AND (i.expires_at IS NULL OR i.expires_at > NOW())
+        AND (
+          c.decay_days <= 0
+          OR i.created_at >= NOW() - INTERVAL '1 day' * c.decay_days
+        )
+    ),
+    updated AS (
+      UPDATE infractions i
+      SET
+        active = FALSE,
+        revoked_at = NOW(),
+        revoker_id = $3,
+        reason = CASE
+          WHEN ($4)::text IS NULL THEN reason
+          ELSE CONCAT_WS(' | Bulk clear: ', NULLIF(reason, ''), ($4)::text)
+        END
+      FROM affected a
+      WHERE i.id = a.id
+      RETURNING i.*
+    )
+    SELECT * FROM updated;
+  `;
+
+  const { rows } = await query(sql, [guildId, userId, revokerId, clearReason]);
+  return rows;
+}
+
+
 // Export all functions
 export default {
 //  createInfraction,
@@ -390,4 +442,5 @@ export default {
   listWarnThresholds,
   removeWarnThreshold,
   logAudit,
+  clearUserWarns
 };

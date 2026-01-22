@@ -86,7 +86,7 @@ export default {
 
     const userIsOwner = await isOwner(interaction).catch(() => false);
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply();
 
     // ---- live measures
     const lagMs = await sampleEventLoopLag(150);
@@ -214,6 +214,6 @@ export default {
       .setTimestamp()
       .setFooter({ text: `Node ${process.version}${userIsOwner ? '' : ' • redacted'}` });
 
-    return safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+    return safeReply(interaction, { embeds: [embed] });
   },
 };

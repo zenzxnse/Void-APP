@@ -10,6 +10,9 @@ import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerTicTacToeComponents } from './games/tttComponent.js';
+import { registerAppinvitesComponents } from './registerAppinvitesComponents.js';
+import { registerWarnComponents } from './warnComponents.js';
+import { registerTestComponents } from './test_components.js';
 
 const log = createLogger({ mod: 'components:init' });
 
@@ -22,6 +25,9 @@ export async function initializeComponents(client) {
   // Register component modules
   try {
     registerTicTacToeComponents(router);
+    registerWarnComponents(router);  
+    registerAppinvitesComponents(router);
+    registerTestComponents(router);
     // Add more modules here
     
   } catch (err) {

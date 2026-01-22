@@ -6,6 +6,7 @@ import {
 } from '../../utils/moderation/mod.js';
 import { query } from '../../core/db/index.js';
 import { revokeWarn, logAudit, getGuildConfig } from '../../utils/moderation/mod-db.js';
+import { emojies } from '../../graphics/colors.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -166,10 +167,10 @@ export default {
 
       // Build response
       const response = [
-        `✅ **Removed warning from ${target.user.tag}**`,
-        `📋 **Case ID:** \`${revoked.id}\``,
-        note ? `📝 **Note:** ${note}` : null,
-        dmFailed ? '⚠️ *Could not DM user*' : null,
+        `${emojies.modAction} **Removed warning from ${target.user.tag}**`,
+        `> ${emojies.voidEye} **Case ID:** \`${revoked.id}\``,
+        note ? `> ${emojies.questionMark} **Note:** ${note}` : null,
+        dmFailed ? `${emojies.error} *Could not DM user*` : null,
       ].filter(Boolean).join('\n');
 
       return safeReply(interaction, {

@@ -425,11 +425,17 @@ main().catch((err) => {
 // docker run --name void-redis -p 6379:6379 -d redis:7-alpine
 
 /*
-$src="C:\Mods\Java Notes\mc\New folder\Void"; `
-$pkg="$env:TEMP\void-upload.tgz"; `
-if(Test-Path $pkg){Remove-Item $pkg -Force}; `
-tar -czf "$pkg" -C "$src" --exclude=node_modules --exclude=.git --exclude=.env --exclude=.DS_Store .; `
-scp "$pkg" root@89.116.191.107:/opt/void-bot/void-upload.tgz; `
-ssh root@89.116.191.107 "cd /opt/void-bot && tar xzf void-upload.tgz -C app && rm void-upload.tgz && echo 'Synced.'"
+$src = "C:\Mods\Java Notes\mc\New folder\Void"
+$pkg = "$env:TEMP\void-upload.tgz"
+if (Test-Path $pkg) { Remove-Item $pkg -Force }
+tar -czf "$pkg" -C "$src" --exclude=node_modules --exclude=.git --exclude=.env --exclude=.DS_Store .
+scp "$pkg" root@148.230.91.236:/opt/void-bot/void-upload.tgz
+ssh root@148.230.91.236 "cd /opt/void-bot && mkdir -p app && tar xzf void-upload.tgz -C app && rm void-upload.tgz && echo 'Synced.' && ls -la app | head -n 30"
 
 */
+
+// Aa#)38287212
+
+//ssh root@148.230.91.236
+
+// cd /opt/void-bot && rm -rf app && mkdir -p app && tar -xzf void-upload.tgz -C app && rm void-upload.tgz

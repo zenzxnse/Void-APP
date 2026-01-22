@@ -62,13 +62,15 @@ if (!process.env.COMPONENT_SECRET) {
  * @property {number} USED_ID_TTL - Anti-replay entry lifetime (milliseconds)
  */
 const CONFIG = {
-  ID_SECRET: process.env.COMPONENT_SECRET,
-  DEFAULT_TTL: 900, // 15 minutes
-  MAX_ID_LENGTH: 100,
-  GUILD_CACHE_TTL: 60000, // 1 minute
-  CLOCK_SKEW_TOLERANCE: 30, // 30 seconds
-  MAX_USED_IDS: 10000,
-  USED_ID_TTL: 3600000, // 1 hour
+  ID_SECRET: process.env.COMPONENT_SECRET,
+  DEFAULT_TTL: 900, // 15 minutes
+  MAX_ID_LENGTH: 100,
+  GUILD_CACHE_TTL: 60000,
+  CLOCK_SKEW_TOLERANCE: 30,
+  MAX_USED_IDS: 10000,
+  USED_ID_TTL: 3600000,
+  SIGNATURE_LENGTH: 6,  // New: Reduced from implicit 12
+  NONCE_BYTES: 4,  // New: Reduced from 6
 };
 
 // ============================================================================
@@ -223,15 +225,23 @@ export class SecureCustomId {
    * @example
    * customId.setContext(interaction)
    */
-  setContext(interaction) {
-    this.data.u = interaction.user.id;
-    this.data.g = interaction.guildId || 'd';
-    this.data.c = interaction.channelId;
-    this.data.m = interaction.message?.id || null;
-    this.data.e = Math.floor(Date.now() / 1000) + CONFIG.DEFAULT_TTL;
-    this.data.n = randomBytes(6).toString('hex');
-    return this;
-  }
+  setContext(interaction, options = { user: true, guild: false, channel: false, message: false }) {
+    if (options.user) {
+      this.data.u = BigInt(interaction.user.id).toString(36);
+    }
+    if (options.guild) {
+      this.data.g = interaction.guildId ? BigInt(interaction.guildId).toString(36) : 'd';
+    }
+    if (options.channel) {
+      this.data.c = BigInt(interaction.channelId).toString(36);
+    }
+    if (options.message) {
+      this.data.m = interaction.message?.id ? BigInt(interaction.message.id).toString(36) : null;
+    }
+    this.data.e = (Math.floor(Date.now() / 1000) + CONFIG.DEFAULT_TTL).toString(36);
+    this.data.n = randomBytes(CONFIG.NONCE_BYTES).toString('hex');
+    return this;
+  }
 
   /**
    * Set custom data payload
@@ -278,23 +288,28 @@ export class SecureCustomId {
    * // 'game:move:v1:eyJkIjp7InAiOjR9fQ:Ab12Cd34Ef56'
    */
   build() {
-    const payload = Buffer.from(JSON.stringify(this.data)).toString('base64url');
-    const prefix = `${this.namespace}:${this.action}:${this.version}`;
-    const unsigned = `${prefix}:${payload}`;
-    
-    const signature = createHmac('sha256', CONFIG.ID_SECRET)
-      .update(unsigned)
-      .digest('base64url')
-      .substring(0, 12);
-    
-    const final = `${unsigned}:${signature}`;
-    
-    if (final.length > CONFIG.MAX_ID_LENGTH) {
-      throw new Error(`Custom ID too long: ${final.length} chars`);
-    }
-    
-    return final;
-  }
+    try {
+        const payload = Buffer.from(JSON.stringify(this.data)).toString('base64url');
+        const prefix = `${this.namespace}:${this.action}:${this.version}`;
+        const unsigned = `${prefix}:${payload}`;
+        
+        const signature = createHmac('sha256', CONFIG.ID_SECRET)
+            .update(unsigned)
+            .digest('base64url')
+            .substring(0, CONFIG.SIGNATURE_LENGTH);
+        
+        const final = `${unsigned}:${signature}`;
+        
+        if (final.length > CONFIG.MAX_ID_LENGTH) {
+            throw new Error(`Custom ID too long: ${final.length} chars`);
+        }
+        
+        return final;
+    } catch (err) {
+        log.error({ err, namespace: this.namespace, action: this.action }, 'Failed to build custom ID');
+        throw err;
+    }
+  }
 
   /**
    * Parse and verify a custom ID
@@ -316,26 +331,33 @@ export class SecureCustomId {
    * }
    */
   static parse(customId, interaction = null) {
-    try {
-      const parts = customId.split(':');
-      if (parts.length < 5) return null;
-      
-      const [namespace, action, version, payload, signature] = parts;
-      const unsigned = parts.slice(0, 4).join(':');
-      
-      // Verify signature
-      const expectedSig = createHmac('sha256', CONFIG.ID_SECRET)
-        .update(unsigned)
-        .digest('base64url')
-        .substring(0, 12);
-      
-      if (signature !== expectedSig) {
-        log.debug('Invalid signature');
-        return null;
-      }
-      
-      // Decode payload
-      const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    try {
+      const parts = customId.split(':');
+      if (parts.length < 5) return null;
+      
+      const [namespace, action, version, payload, signature] = parts;
+      const unsigned = parts.slice(0, 4).join(':');
+      
+      // Verify signature (using new length)
+      const expectedSig = createHmac('sha256', CONFIG.ID_SECRET)
+        .update(unsigned)
+        .digest('base64url')
+        .substring(0, CONFIG.SIGNATURE_LENGTH);
+      
+      if (signature !== expectedSig) {
+        log.debug('Invalid signature');
+        return null;
+      }
+      
+      // Decode payload
+      const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+      
+      // Convert base36 fields back
+      if (data.u) data.u = base36ToBigInt(data.u).toString(10);
+      if (data.g && data.g !== 'd') data.g = base36ToBigInt(data.g).toString(10);
+      if (data.c) data.c = base36ToBigInt(data.c).toString(10);
+      if (data.m) data.m = base36ToBigInt(data.m).toString(10);
+      if (data.e) data.e = parseInt(data.e, 36);
       
       // Check expiry with clock skew tolerance
       const now = Math.floor(Date.now() / 1000);
@@ -388,7 +410,7 @@ export class SecureCustomId {
         raw: customId
       };
     } catch (err) {
-      log.debug({ err }, 'Failed to parse custom ID');
+      log.debug({ err }, 'Parse failed');
       return null;
     }
   }
@@ -415,12 +437,12 @@ export class SecureCustomId {
  * // With custom TTL (1 hour)
  * makeId('ticket', 'close', interaction, { ticketId: '123' }, 3600)
  */
-export function makeId(ns, action, interaction, custom = {}, ttl = CONFIG.DEFAULT_TTL) {
-  return new SecureCustomId(ns, action)
-    .setContext(interaction)
-    .setData(custom)
-    .setTTL(ttl)
-    .build();
+export function makeId(namespace, action, interaction, custom = {}, ttl = CONFIG.DEFAULT_TTL, contextOptions = { user: true, guild: false, channel: false, message: false }) {
+  return new SecureCustomId(namespace, action)
+    .setContext(interaction, contextOptions)
+    .setData(custom)
+    .setTTL(ttl)
+    .build();
 }
 
 /**
@@ -1423,4 +1445,23 @@ async storePersistentComponent(interaction, parsed, handler) {
  */
 export default function createComponentRouter(client) {
   return new ComponentRouter(client);
+}
+
+function base36ToBigInt(str) {
+  let result = 0n;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    let digit;
+    if (char >= 48 && char <= 57) { // 0-9
+      digit = char - 48;
+    } else if (char >= 97 && char <= 122) { // a-z
+      digit = char - 97 + 10;
+    } else if (char >= 65 && char <= 90) { // A-Z
+      digit = char - 65 + 10;
+    } else {
+      throw new Error('Invalid base36 character');
+    }
+    result = result * 36n + BigInt(digit);
+  }
+  return result;
 }

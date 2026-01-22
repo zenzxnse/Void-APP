@@ -123,6 +123,7 @@ export async function runShard() {
 
 /**
  * [DEPRECATED]
+ * Since Instantiated Void Instance has an event loader attached which goes through all the events already and registers them.
  * Sets up the consolidated 'ready' event handler. All logic that should run once
  * the shard is connected and ready should be placed here.
  */

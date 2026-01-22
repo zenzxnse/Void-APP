@@ -50,7 +50,7 @@ export const Automod = {
    */
   async handle(message, client) {
     try {
-      if (message.author.bot || message.system || !message.inGuild()) return { acted: false, reason: 'skip' };
+      if (message.system || !message.inGuild()) return { acted: false, reason: 'skip' };
       if (!message.content?.trim() && message.attachments.size === 0) return { acted: false, reason: 'empty' };
 
       if (!message.member) {

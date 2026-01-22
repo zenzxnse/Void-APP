@@ -1,6 +1,3 @@
-// src/VoidApp.js
-// Minimal main bot class — uses existing handlers, no auto-registration, no extra loaders.
-
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { logger } from "./logger.js";
 import loadCommands from "./loaders/commandLoader.js";
@@ -10,8 +7,9 @@ export default class VoidApp extends Client {
   #token;
 
   constructor(token) {
-    if (!token) throw new Error("VOID_TOKEN is missing or empty");
-
+    if (!token) {
+       throw new Error("VOID_TOKEN is missing or empty");
+    }
     super({
       intents: [
         GatewayIntentBits.Guilds,
@@ -38,7 +36,6 @@ export default class VoidApp extends Client {
       errors: 0,
     };
 
-    // Graceful shutdown
     const shutdown = async (sig) => {
       logger.info({ sig }, "Shutting down");
       try {
